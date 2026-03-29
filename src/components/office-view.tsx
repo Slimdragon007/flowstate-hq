@@ -4,21 +4,6 @@ import { useState } from "react";
 import type { AgentData } from "./agent-card";
 import { AgentOutputDrawer } from "./agent-output-drawer";
 
-// Status -> screen glow color
-const STATUS_GLOW: Record<string, string> = {
-  idle: "rgba(102, 102, 136, 0.15)",
-  working: "rgba(255, 204, 0, 0.4)",
-  done: "rgba(0, 255, 136, 0.3)",
-  error: "rgba(255, 68, 68, 0.4)",
-};
-
-const STATUS_SCREEN: Record<string, string> = {
-  idle: "#1a1a2e",
-  working: "#2a2200",
-  done: "#0a2a15",
-  error: "#2a0a0a",
-};
-
 const STATUS_DOT: Record<string, string> = {
   idle: "#666688",
   working: "#ffcc00",
@@ -26,268 +11,318 @@ const STATUS_DOT: Record<string, string> = {
   error: "#ff4444",
 };
 
-// Isometric workstation: desk + monitor + chair + agent
-function Workstation({
+const SCREEN_BG: Record<string, string> = {
+  idle: "#1a2030",
+  working: "#2a2800",
+  done: "#0a2815",
+  error: "#2a1010",
+};
+
+const SCREEN_GLOW: Record<string, string> = {
+  idle: "0 0 4px rgba(100,120,180,0.2)",
+  working: "0 0 12px rgba(255,204,0,0.5)",
+  done: "0 0 8px rgba(0,255,136,0.4)",
+  error: "0 0 8px rgba(255,68,68,0.5)",
+};
+
+// Isometric desk with monitor, keyboard, chair, and agent
+function IsoDesk({
   agent,
+  flip,
   onClick,
-  style,
 }: {
   agent: AgentData;
+  flip?: boolean;
   onClick: () => void;
-  style?: React.CSSProperties;
 }) {
   const isWorking = agent.status === "working";
-  const screenColor = STATUS_SCREEN[agent.status] ?? STATUS_SCREEN.idle;
-  const glowColor = STATUS_GLOW[agent.status] ?? STATUS_GLOW.idle;
-  const dotColor = STATUS_DOT[agent.status] ?? STATUS_DOT.idle;
 
   return (
-    <button
+    <g
       onClick={onClick}
-      className="group absolute cursor-pointer"
-      style={style}
-      title={`${agent.name} - ${agent.role}`}
+      className="cursor-pointer"
+      style={{ transform: flip ? "scale(-1,1)" : undefined }}
     >
-      <svg
-        width="100"
-        height="90"
-        viewBox="0 0 100 90"
-        className="transition-transform group-hover:scale-110"
-      >
-        {/* Desk surface (isometric rectangle) */}
-        <polygon
-          points="50,52 85,37 50,22 15,37"
-          fill="#2a2a3e"
-          stroke="#3a3a50"
-          strokeWidth="1"
-        />
-        {/* Desk front face */}
-        <polygon
-          points="15,37 50,52 50,58 15,43"
-          fill="#222235"
-          stroke="#3a3a50"
-          strokeWidth="0.5"
-        />
-        {/* Desk right face */}
-        <polygon
-          points="50,52 85,37 85,43 50,58"
-          fill="#1e1e30"
-          stroke="#3a3a50"
-          strokeWidth="0.5"
-        />
+      {/* Shadow under desk */}
+      <ellipse cx="0" cy="10" rx="28" ry="8" fill="rgba(0,0,0,0.15)" />
 
-        {/* Monitor back (isometric) */}
-        <polygon
-          points="40,32 60,22 60,8 40,18"
-          fill="#1a1a2e"
-          stroke="#2a2a40"
-          strokeWidth="1"
+      {/* Desk legs */}
+      <rect x="-22" y="-2" width="2" height="12" fill="#5a4a3a" rx="0.5" />
+      <rect x="20" y="-2" width="2" height="12" fill="#5a4a3a" rx="0.5" />
+      <rect x="-22" y="4" width="2" height="8" fill="#4a3a2a" rx="0.5" />
+      <rect x="20" y="4" width="2" height="8" fill="#4a3a2a" rx="0.5" />
+
+      {/* Desk top surface */}
+      <path
+        d="M-24,-4 L24,-4 L28,0 L-20,0 Z"
+        fill="#8b7355"
+        stroke="#9a8265"
+        strokeWidth="0.5"
+      />
+      {/* Desk front */}
+      <path d="M-20,0 L28,0 L28,3 L-20,3 Z" fill="#7a6245" />
+
+      {/* Monitor */}
+      <g>
+        {/* Monitor back/frame */}
+        <rect
+          x="-10"
+          y="-22"
+          width="20"
+          height="16"
+          rx="1.5"
+          fill="#2a2a35"
+          stroke="#3a3a45"
+          strokeWidth="0.5"
         />
-        {/* Monitor screen */}
-        <polygon
-          points="42,30 58,21 58,10 42,19"
-          fill={screenColor}
-          className={isWorking ? "animate-screen-flicker" : ""}
-          style={{ filter: `drop-shadow(0 0 6px ${glowColor})` }}
+        {/* Screen */}
+        <rect
+          x="-8"
+          y="-20"
+          width="16"
+          height="12"
+          rx="0.5"
+          fill={SCREEN_BG[agent.status]}
+          style={{ boxShadow: SCREEN_GLOW[agent.status] }}
+        >
+          {isWorking && (
+            <animate attributeName="opacity" values="0.85;1;0.85" dur="2s" repeatCount="indefinite" />
+          )}
+        </rect>
+        {/* Screen glow filter */}
+        <rect
+          x="-8"
+          y="-20"
+          width="16"
+          height="12"
+          rx="0.5"
+          fill="none"
+          stroke={STATUS_DOT[agent.status]}
+          strokeWidth="0.3"
+          opacity="0.5"
         />
-        {/* Screen content lines */}
+        {/* Screen content */}
         {agent.status === "done" && (
-          <>
-            <line x1="44" y1="22" x2="54" y2="17" stroke="#00ff8840" strokeWidth="1" />
-            <line x1="44" y1="24" x2="52" y2="20" stroke="#00ff8830" strokeWidth="1" />
-            <line x1="44" y1="26" x2="56" y2="21" stroke="#00ff8820" strokeWidth="1" />
-          </>
+          <g opacity="0.5">
+            <rect x="-6" y="-18" width="8" height="1" rx="0.5" fill="#00ff88" opacity="0.4" />
+            <rect x="-6" y="-16" width="11" height="1" rx="0.5" fill="#00ff88" opacity="0.3" />
+            <rect x="-6" y="-14" width="6" height="1" rx="0.5" fill="#00ff88" opacity="0.2" />
+            <rect x="-6" y="-12" width="9" height="1" rx="0.5" fill="#00ff88" opacity="0.15" />
+          </g>
         )}
         {isWorking && (
-          <>
-            <line x1="44" y1="22" x2="48" y2="20" stroke="#ffcc0060" strokeWidth="1.5" className="animate-pulse" />
-            <line x1="50" y1="19" x2="54" y2="17" stroke="#ffcc0040" strokeWidth="1.5" className="animate-pulse" style={{ animationDelay: "0.3s" }} />
-          </>
+          <g>
+            <rect x="-6" y="-17" width="4" height="1" rx="0.5" fill="#ffcc00" opacity="0.6">
+              <animate attributeName="width" values="4;8;4" dur="1.5s" repeatCount="indefinite" />
+            </rect>
+            <rect x="-6" y="-15" width="7" height="1" rx="0.5" fill="#ffcc00" opacity="0.3">
+              <animate attributeName="width" values="7;3;7" dur="2s" repeatCount="indefinite" />
+            </rect>
+          </g>
         )}
         {/* Monitor stand */}
-        <line x1="50" y1="32" x2="50" y2="36" stroke="#2a2a40" strokeWidth="2" />
+        <rect x="-2" y="-6" width="4" height="3" fill="#2a2a35" />
+        <rect x="-6" y="-4" width="12" height="1.5" rx="0.5" fill="#333340" />
+      </g>
 
-        {/* Chair (behind desk) */}
-        <ellipse cx="50" cy="62" rx="8" ry="4" fill="#1a1a30" stroke="#2a2a40" strokeWidth="0.5" />
-        <polygon
-          points="44,62 56,62 54,54 46,54"
-          fill="#222240"
-          stroke="#2a2a50"
-          strokeWidth="0.5"
+      {/* Keyboard */}
+      <rect x="-8" y="-2" width="12" height="2" rx="0.5" fill="#333340" stroke="#444450" strokeWidth="0.3" />
+
+      {/* Chair */}
+      <g transform="translate(0, 14)">
+        {/* Chair base */}
+        <ellipse cx="0" cy="2" rx="6" ry="2" fill="#333340" />
+        {/* Chair seat */}
+        <rect x="-6" y="-3" width="12" height="5" rx="2" fill="#444458" stroke="#555568" strokeWidth="0.3" />
+        {/* Chair back */}
+        <rect x="-5" y="-10" width="10" height="8" rx="2" fill="#3a3a50" stroke="#4a4a60" strokeWidth="0.3" />
+      </g>
+
+      {/* Agent person (sitting in chair) */}
+      <g transform="translate(0, 6)">
+        {/* Body/torso */}
+        <rect
+          x="-4"
+          y="-4"
+          width="8"
+          height="8"
+          rx="2"
+          fill={agent.color}
+          opacity="0.85"
         />
-
-        {/* Agent (person sitting in chair) */}
-        <g className={isWorking ? "animate-iso-typing" : ""}>
-          {/* Body */}
-          <ellipse cx="50" cy="48" rx="5" ry="3" fill={agent.color} opacity="0.7" />
-          {/* Head */}
-          <circle cx="50" cy="43" r="4" fill={agent.color} opacity="0.9" />
-          {/* Emoji face */}
-          <text x="50" y="46" textAnchor="middle" fontSize="7" className="select-none">
-            {agent.emoji}
-          </text>
-        </g>
-
-        {/* Status indicator dot */}
-        <circle cx="68" cy="12" r="3" fill={dotColor}>
-          {isWorking && (
-            <animate attributeName="opacity" values="1;0.3;1" dur="1.5s" repeatCount="indefinite" />
-          )}
-        </circle>
-
-        {/* Name label */}
+        {/* Head */}
+        <circle cx="0" cy="-8" r="5" fill="#e8d5b8" />
+        {/* Hair */}
+        <path
+          d="M-4,-11 Q0,-14 4,-11 Q5,-9 4,-8 L-4,-8 Q-5,-9 -4,-11 Z"
+          fill={agent.color}
+          opacity="0.9"
+        />
+        {/* Face emoji (unflipped) */}
         <text
-          x="50"
-          y="78"
+          x="0"
+          y="-5"
           textAnchor="middle"
-          fill="#aaaacc"
           fontSize="7"
-          fontFamily="var(--font-space-mono), monospace"
-          fontWeight="bold"
-          className="select-none group-hover:fill-white transition-colors"
-        >
-          {agent.name}
-        </text>
-
-        {/* Role label */}
-        <text
-          x="50"
-          y="86"
-          textAnchor="middle"
-          fill="#666688"
-          fontSize="5"
-          fontFamily="var(--font-inter), sans-serif"
           className="select-none"
+          style={{ transform: flip ? "scale(-1,1)" : undefined, transformOrigin: "0 -5px" }}
         >
-          {agent.role}
+          {agent.emoji}
         </text>
-      </svg>
 
-      {/* Activity speech bubble */}
-      {isWorking && (
-        <div className="absolute -right-4 -top-2 z-10 rounded-lg border border-amber/30 bg-surface/95 px-2 py-1 backdrop-blur-sm">
-          <span className="font-mono text-[0.5rem] text-amber">working...</span>
-        </div>
-      )}
-    </button>
-  );
-}
+        {isWorking && (
+          <g>
+            {/* Typing hands animation */}
+            <rect x="-6" y="2" width="3" height="2" rx="1" fill="#e8d5b8" opacity="0.8">
+              <animate attributeName="y" values="2;1;2" dur="0.3s" repeatCount="indefinite" />
+            </rect>
+            <rect x="3" y="2" width="3" height="2" rx="1" fill="#e8d5b8" opacity="0.8">
+              <animate attributeName="y" values="2;1;2" dur="0.3s" begin="0.15s" repeatCount="indefinite" />
+            </rect>
+          </g>
+        )}
+      </g>
 
-// Meeting table for the center of the office
-function MeetingTable() {
-  return (
-    <svg width="120" height="80" viewBox="0 0 120 80">
-      {/* Table surface */}
-      <polygon
-        points="60,20 110,45 60,70 10,45"
-        fill="#3a2a1a"
-        stroke="#4a3a2a"
-        strokeWidth="1"
-      />
-      {/* Table front */}
-      <polygon
-        points="10,45 60,70 60,75 10,50"
-        fill="#2a1a0a"
-        stroke="#4a3a2a"
-        strokeWidth="0.5"
-      />
-      {/* Table right */}
-      <polygon
-        points="60,70 110,45 110,50 60,75"
-        fill="#251508"
-        stroke="#4a3a2a"
-        strokeWidth="0.5"
-      />
-      {/* Chairs around table */}
-      {[
-        { cx: 35, cy: 30 },
-        { cx: 85, cy: 30 },
-        { cx: 25, cy: 50 },
-        { cx: 95, cy: 50 },
-      ].map((pos, i) => (
-        <ellipse
-          key={i}
-          cx={pos.cx}
-          cy={pos.cy}
-          rx="6"
-          ry="3"
-          fill="#1a1a30"
-          stroke="#2a2a40"
-          strokeWidth="0.5"
-        />
-      ))}
-    </svg>
-  );
-}
+      {/* Status dot */}
+      <circle cx="14" cy="-22" r="2.5" fill={STATUS_DOT[agent.status]}>
+        {isWorking && (
+          <animate attributeName="opacity" values="1;0.3;1" dur="1s" repeatCount="indefinite" />
+        )}
+      </circle>
 
-// Decorative elements
-function Plant({ x, y }: { x: number; y: number }) {
-  return (
-    <svg
-      width="30"
-      height="40"
-      viewBox="0 0 30 40"
-      className="absolute"
-      style={{ left: x, top: y }}
-    >
-      {/* Pot */}
-      <polygon points="10,30 20,30 18,40 12,40" fill="#4a3020" />
-      {/* Leaves */}
-      <circle cx="15" cy="24" r="8" fill="#1a4a2a" opacity="0.8" />
-      <circle cx="12" cy="20" r="5" fill="#2a6a3a" opacity="0.7" />
-      <circle cx="18" cy="22" r="6" fill="#1a5a2a" opacity="0.6" />
-    </svg>
-  );
-}
-
-// Zone label with glowing line
-function ZoneLabel({
-  label,
-  color,
-  style,
-}: {
-  label: string;
-  color: string;
-  style?: React.CSSProperties;
-}) {
-  return (
-    <div className="absolute flex items-center gap-2" style={style}>
-      <div className="h-px w-8" style={{ background: `${color}40` }} />
-      <span
-        className="font-pixel text-[0.4rem] tracking-[0.25em] uppercase"
-        style={{ color: `${color}80` }}
+      {/* Name label */}
+      <text
+        x="0"
+        y="32"
+        textAnchor="middle"
+        fill="#ccccdd"
+        fontSize="5.5"
+        fontWeight="bold"
+        fontFamily="var(--font-space-mono), monospace"
+        className="select-none"
+        style={{ transform: flip ? "scale(-1,1)" : undefined, transformOrigin: "0 32px" }}
       >
-        {label}
-      </span>
-      <div className="h-px w-8" style={{ background: `${color}40` }} />
-    </div>
+        {agent.name}
+      </text>
+    </g>
   );
 }
 
-// Workstation positions on the floor (x, y coordinates)
-const POSITIONS: Record<string, { x: number; y: number }[]> = {
-  // Top-left zone: Command (1 agent)
-  core: [{ x: 60, y: 30 }],
-  // Top-right zone: Yelp Ops (3 agents)
-  yelp: [
-    { x: 380, y: 20 },
-    { x: 500, y: 20 },
-    { x: 440, y: 90 },
-  ],
-  // Bottom-left zone: FlowstateAI Lab (4 agents)
-  flowstate: [
-    { x: 30, y: 200 },
-    { x: 150, y: 200 },
-    { x: 30, y: 290 },
-    { x: 150, y: 290 },
-  ],
-  // Bottom-right zone: Personal Stack (4 agents)
-  personal: [
-    { x: 380, y: 200 },
-    { x: 500, y: 200 },
-    { x: 380, y: 290 },
-    { x: 500, y: 290 },
-  ],
+// Meeting room round table
+function MeetingRoom() {
+  return (
+    <g>
+      {/* Shadow */}
+      <ellipse cx="0" cy="8" rx="30" ry="10" fill="rgba(0,0,0,0.1)" />
+      {/* Table */}
+      <ellipse cx="0" cy="0" rx="20" ry="8" fill="#6b5540" stroke="#7a6450" strokeWidth="0.5" />
+      <ellipse cx="0" cy="-2" rx="20" ry="8" fill="#8b7355" stroke="#9a8265" strokeWidth="0.5" />
+      {/* Chairs */}
+      {[-25, 25].map((x) =>
+        [-6, 6].map((y, i) => (
+          <ellipse key={`${x}-${i}`} cx={x} cy={y} rx="5" ry="3" fill="#444458" stroke="#555568" strokeWidth="0.3" />
+        ))
+      )}
+      {/* Items on table */}
+      <rect x="-5" y="-4" width="4" height="3" rx="0.5" fill="#2a2a35" opacity="0.6" /> {/* laptop */}
+      <circle cx="8" cy="-1" r="2" fill="#3a2a1a" opacity="0.4" /> {/* coffee */}
+    </g>
+  );
+}
+
+// Couch/lounge area
+function Couch() {
+  return (
+    <g>
+      <ellipse cx="0" cy="6" rx="22" ry="5" fill="rgba(0,0,0,0.08)" />
+      {/* Couch base */}
+      <rect x="-18" y="-4" width="36" height="10" rx="3" fill="#3a3555" stroke="#4a4565" strokeWidth="0.5" />
+      {/* Couch back */}
+      <rect x="-18" y="-10" width="36" height="8" rx="3" fill="#4a4570" stroke="#5a5580" strokeWidth="0.5" />
+      {/* Cushions */}
+      <rect x="-15" y="-3" width="12" height="8" rx="2" fill="#4a4570" opacity="0.5" />
+      <rect x="3" y="-3" width="12" height="8" rx="2" fill="#4a4570" opacity="0.5" />
+      {/* Coffee table */}
+      <rect x="-8" y="12" width="16" height="6" rx="1" fill="#6b5540" stroke="#7a6450" strokeWidth="0.3" />
+    </g>
+  );
+}
+
+// Plant decoration
+function PlantPot() {
+  return (
+    <g>
+      <rect x="-3" y="2" width="6" height="6" rx="1" fill="#6b5540" />
+      <circle cx="0" cy="-2" r="6" fill="#2a5a3a" opacity="0.8" />
+      <circle cx="-3" cy="-5" r="4" fill="#3a7a4a" opacity="0.6" />
+      <circle cx="3" cy="-4" r="4.5" fill="#2a6a3a" opacity="0.7" />
+    </g>
+  );
+}
+
+// Water cooler
+function WaterCooler() {
+  return (
+    <g>
+      <rect x="-4" y="-2" width="8" height="14" rx="1" fill="#aabbcc" stroke="#99aabb" strokeWidth="0.5" />
+      <rect x="-3" y="-8" width="6" height="7" rx="1" fill="#88ccff" opacity="0.4" />
+      <rect x="-3" y="-9" width="6" height="2" rx="0.5" fill="#8899aa" />
+    </g>
+  );
+}
+
+// Zone positions: { agentPositions, features }
+const OFFICE_LAYOUT = {
+  // Total SVG viewBox: 800 x 500
+  zones: {
+    core: {
+      area: { x: 40, y: 40, w: 340, h: 180 },
+      label: { text: "COMMAND", x: 210, y: 58, color: "#ffffff" },
+      agents: [{ x: 160, y: 130 }],
+    },
+    yelp: {
+      area: { x: 420, y: 40, w: 340, h: 180 },
+      label: { text: "YELP OPS", x: 590, y: 58, color: "#ffcc00" },
+      agents: [
+        { x: 490, y: 110, flip: false },
+        { x: 590, y: 110, flip: true },
+        { x: 690, y: 110, flip: false },
+      ],
+    },
+    flowstate: {
+      area: { x: 40, y: 260, w: 340, h: 200 },
+      label: { text: "FLOWSTATE LAB", x: 210, y: 278, color: "#aa66ff" },
+      agents: [
+        { x: 100, y: 330, flip: false },
+        { x: 200, y: 330, flip: true },
+        { x: 100, y: 410, flip: false },
+        { x: 200, y: 410, flip: true },
+      ],
+    },
+    personal: {
+      area: { x: 420, y: 260, w: 340, h: 200 },
+      label: { text: "PERSONAL STACK", x: 590, y: 278, color: "#00d4ff" },
+      agents: [
+        { x: 490, y: 330, flip: false },
+        { x: 590, y: 330, flip: true },
+        { x: 690, y: 330, flip: false },
+        { x: 590, y: 410, flip: true },
+      ],
+    },
+  },
+  features: {
+    meetingRoom: { x: 330, y: 160 },
+    couch: { x: 400, y: 430 },
+    plants: [
+      { x: 60, y: 140 },
+      { x: 310, y: 140 },
+      { x: 740, y: 140 },
+      { x: 60, y: 420 },
+      { x: 310, y: 420 },
+      { x: 740, y: 420 },
+    ],
+    waterCooler: { x: 380, y: 300 },
+  },
 };
 
 export function OfficeView({ agents }: { agents: AgentData[] }) {
@@ -322,82 +357,130 @@ export function OfficeView({ agents }: { agents: AgentData[] }) {
         </div>
       </div>
 
-      {/* Office floor */}
-      <div className="mx-auto overflow-x-auto">
-        <div className="relative mx-auto" style={{ width: 640, height: 420 }}>
-          {/* Floor base */}
-          <div
-            className="absolute inset-0 rounded-2xl border border-border/50"
-            style={{
-              background: "linear-gradient(135deg, #12121f 0%, #0e0e1a 50%, #101020 100%)",
-              boxShadow: "inset 0 0 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 0, 0, 0.3)",
-            }}
-          >
-            {/* Floor grid overlay */}
-            <div
-              className="absolute inset-0 rounded-2xl opacity-[0.03]"
-              style={{
-                backgroundImage:
-                  "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)",
-                backgroundSize: "40px 40px",
-              }}
-            />
-          </div>
+      {/* Office SVG */}
+      <div className="mx-auto overflow-x-auto rounded-2xl border border-border" style={{ background: "#0c0c18" }}>
+        <svg
+          viewBox="0 0 800 500"
+          className="w-full"
+          style={{ minWidth: 600, maxWidth: 900 }}
+        >
+          <defs>
+            {/* Floor tile pattern */}
+            <pattern id="floorTile" width="40" height="40" patternUnits="userSpaceOnUse">
+              <rect width="40" height="40" fill="#1a1828" />
+              <rect x="0" y="0" width="20" height="20" fill="#1c1a2c" />
+              <rect x="20" y="20" width="20" height="20" fill="#1c1a2c" />
+            </pattern>
+            {/* Warm spotlight gradient */}
+            <radialGradient id="warmGlow" cx="50%" cy="40%" r="60%">
+              <stop offset="0%" stopColor="rgba(255,200,100,0.04)" />
+              <stop offset="100%" stopColor="rgba(0,0,0,0)" />
+            </radialGradient>
+          </defs>
 
-          {/* Zone labels */}
-          <ZoneLabel label="Command" color="#ffffff" style={{ left: 40, top: 12 }} />
-          <ZoneLabel label="Yelp Ops" color="#ffcc00" style={{ right: 40, top: 12 }} />
-          <ZoneLabel label="FlowstateAI Lab" color="#aa66ff" style={{ left: 40, top: 185 }} />
-          <ZoneLabel label="Personal Stack" color="#00d4ff" style={{ right: 40, top: 185 }} />
+          {/* Main floor */}
+          <rect x="20" y="20" width="760" height="460" rx="12" fill="url(#floorTile)" />
+          <rect x="20" y="20" width="760" height="460" rx="12" fill="url(#warmGlow)" />
 
-          {/* Zone divider lines */}
-          <div
-            className="absolute left-1/2 top-4 h-[calc(100%-32px)] w-px"
-            style={{ background: "linear-gradient(to bottom, transparent, #1a1a3e, transparent)" }}
+          {/* Floor border/walls */}
+          <rect
+            x="20"
+            y="20"
+            width="760"
+            height="460"
+            rx="12"
+            fill="none"
+            stroke="#2a2840"
+            strokeWidth="2"
           />
-          <div
-            className="absolute left-4 top-[46%] h-px w-[calc(100%-32px)]"
-            style={{ background: "linear-gradient(to right, transparent, #1a1a3e, transparent)" }}
-          />
 
-          {/* Meeting table in center */}
-          <div className="absolute" style={{ left: 260, top: 160 }}>
-            <MeetingTable />
-          </div>
+          {/* Zone dividers */}
+          <line x1="400" y1="40" x2="400" y2="460" stroke="#2a2840" strokeWidth="1" strokeDasharray="4,4" />
+          <line x1="40" y1="240" x2="760" y2="240" stroke="#2a2840" strokeWidth="1" strokeDasharray="4,4" />
 
-          {/* Decorative plants */}
-          <Plant x={190} y={80} />
-          <Plant x={420} y={160} />
-          <Plant x={180} y={350} />
-          <Plant x={430} y={350} />
+          {/* Zone backgrounds */}
+          {Object.entries(OFFICE_LAYOUT.zones).map(([zone, config]) => (
+            <g key={zone}>
+              <rect
+                x={config.area.x}
+                y={config.area.y}
+                width={config.area.w}
+                height={config.area.h}
+                rx="6"
+                fill={`${config.label.color}03`}
+              />
+              {/* Zone label */}
+              <text
+                x={config.label.x}
+                y={config.label.y}
+                textAnchor="middle"
+                fill={`${config.label.color}40`}
+                fontSize="8"
+                fontFamily="var(--font-press-start), monospace"
+                letterSpacing="3"
+                className="select-none"
+              >
+                {config.label.text}
+              </text>
+            </g>
+          ))}
+
+          {/* Meeting room */}
+          <g transform={`translate(${OFFICE_LAYOUT.features.meetingRoom.x}, ${OFFICE_LAYOUT.features.meetingRoom.y})`}>
+            <MeetingRoom />
+          </g>
+
+          {/* Couch area */}
+          <g transform={`translate(${OFFICE_LAYOUT.features.couch.x}, ${OFFICE_LAYOUT.features.couch.y})`}>
+            <Couch />
+          </g>
+
+          {/* Water cooler */}
+          <g transform={`translate(${OFFICE_LAYOUT.features.waterCooler.x}, ${OFFICE_LAYOUT.features.waterCooler.y})`}>
+            <WaterCooler />
+          </g>
+
+          {/* Plants */}
+          {OFFICE_LAYOUT.features.plants.map((p, i) => (
+            <g key={i} transform={`translate(${p.x}, ${p.y})`}>
+              <PlantPot />
+            </g>
+          ))}
 
           {/* Agent workstations */}
-          {Object.entries(agentsByZone).map(([zone, zoneAgents]) =>
-            zoneAgents.map((agent, i) => {
-              const positions = POSITIONS[zone];
-              const pos = positions?.[i];
+          {Object.entries(OFFICE_LAYOUT.zones).map(([zone, config]) =>
+            agentsByZone[zone]?.map((agent, i) => {
+              const pos = config.agents[i];
               if (!pos) return null;
               return (
-                <Workstation
-                  key={agent.id}
-                  agent={agent}
-                  onClick={() => setSelectedAgent(agent)}
-                  style={{ left: pos.x, top: pos.y }}
-                />
+                <g key={agent.id} transform={`translate(${pos.x}, ${pos.y})`}>
+                  <IsoDesk
+                    agent={agent}
+                    flip={"flip" in pos ? pos.flip : false}
+                    onClick={() => setSelectedAgent(agent)}
+                  />
+                </g>
               );
             })
           )}
 
-          {/* "FLOWSTATE HQ" watermark */}
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
-            <span className="font-pixel text-[0.35rem] tracking-[0.3em] text-muted/30 uppercase">
-              FlowstateAI Headquarters
-            </span>
-          </div>
-        </div>
+          {/* "HQ" watermark */}
+          <text
+            x="400"
+            y="490"
+            textAnchor="middle"
+            fill="#ffffff08"
+            fontSize="6"
+            fontFamily="var(--font-press-start), monospace"
+            letterSpacing="4"
+            className="select-none"
+          >
+            FLOWSTATE HEADQUARTERS
+          </text>
+        </svg>
       </div>
 
-      {/* Bottom agent status bar */}
+      {/* Bottom agent bar */}
       <div className="mt-4 flex items-center justify-center gap-1 overflow-x-auto rounded-lg border border-border bg-surface p-2">
         {agents.map((agent) => (
           <button
