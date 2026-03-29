@@ -3,25 +3,68 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --bg-base: #0a0a18;
+  --bg-surface: #0f0f24;
+  --bg-elevated: #161632;
+  --border: #1a1a3e;
+  --green: #00ff88;
+  --amber: #ffcc00;
+  --red: #ff4444;
+  --muted: #666688;
+  --text-primary: #ffffff;
+  --text-secondary: #aaaacc;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text-primary);
+  background: var(--bg-base);
+}
+
+/* Subtle grid background */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  .text-status-idle {
+    color: var(--muted);
   }
+  .text-status-working {
+    color: var(--amber);
+  }
+  .text-status-done {
+    color: var(--green);
+  }
+  .text-status-error {
+    color: var(--red);
+  }
+  .bg-status-idle {
+    background-color: var(--muted);
+  }
+  .bg-status-working {
+    background-color: var(--amber);
+  }
+  .bg-status-done {
+    background-color: var(--green);
+  }
+  .bg-status-error {
+    background-color: var(--red);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 1.5s ease-in-out infinite;
 }

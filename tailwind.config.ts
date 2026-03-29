@@ -9,8 +9,21 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        base: "#0a0a18",
+        surface: "#0f0f24",
+        elevated: "#161632",
+        border: "#1a1a3e",
+        green: "#00ff88",
+        amber: "#ffcc00",
+        red: "#ff4444",
+        muted: "#666688",
+        "text-primary": "#ffffff",
+        "text-secondary": "#aaaacc",
+      },
+      fontFamily: {
+        sans: ["var(--font-inter)", "sans-serif"],
+        mono: ["var(--font-space-mono)", "monospace"],
+        pixel: ["var(--font-press-start)", "monospace"],
       },
     },
   },
