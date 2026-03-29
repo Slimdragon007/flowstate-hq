@@ -30,7 +30,7 @@ export async function callAgent(
   context?: string
 ): Promise<CallResult> {
   try {
-    const prompt = agent.prompt_template.replace(
+    const prompt = agent.prompt_template.replaceAll(
       "{{CONTEXT}}",
       context ?? "No additional context provided."
     );
