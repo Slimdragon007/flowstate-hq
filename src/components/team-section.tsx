@@ -1,16 +1,4 @@
-import { AgentCard } from "./agent-card";
-
-interface Agent {
-  id: string;
-  name: string;
-  role: string;
-  zone: string;
-  emoji: string;
-  color: string;
-  status: string;
-  last_output: string | null;
-  last_run_at: string | null;
-}
+import { AgentCard, type AgentData } from "./agent-card";
 
 interface Team {
   id: string;
@@ -23,9 +11,11 @@ interface Team {
 export function TeamSection({
   team,
   agents,
+  onSelectAgent,
 }: {
   team: Team;
-  agents: Agent[];
+  agents: AgentData[];
+  onSelectAgent?: (agent: AgentData) => void;
 }) {
   return (
     <section className="mb-6">
@@ -41,7 +31,7 @@ export function TeamSection({
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {agents.map((agent) => (
-          <AgentCard key={agent.id} agent={agent} />
+          <AgentCard key={agent.id} agent={agent} onSelect={onSelectAgent} />
         ))}
       </div>
     </section>

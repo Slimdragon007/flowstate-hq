@@ -1,8 +1,6 @@
 import { getOrganization, getAgents, getTeams, getActivityLog } from "@/lib/agents";
 import { Header } from "@/components/header";
-import { TeamSection } from "@/components/team-section";
-import { ActivityFeed } from "@/components/activity-feed";
-import { BootButton } from "@/components/boot-button";
+import { DashboardClient } from "@/components/dashboard-client";
 
 const ZONE_TO_TEAM: Record<string, string> = {
   core: "Command",
@@ -34,33 +32,8 @@ export default async function Dashboard() {
   return (
     <div className="relative min-h-screen">
       <Header />
-
       <main className="mx-auto max-w-7xl px-4 py-6">
-        {/* Boot Button */}
-        <div className="mb-8">
-          <BootButton />
-        </div>
-
-        {/* Main Grid: Teams + Activity Feed */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Teams - 2/3 width on desktop */}
-          <div className="lg:col-span-2">
-            {grouped.map(({ team, agents: teamAgents }) => (
-              <TeamSection
-                key={team.id}
-                team={team}
-                agents={teamAgents}
-              />
-            ))}
-          </div>
-
-          {/* Activity Feed - 1/3 width on desktop */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-20">
-              <ActivityFeed initialEntries={activity} />
-            </div>
-          </div>
-        </div>
+        <DashboardClient grouped={grouped} activity={activity} />
       </main>
     </div>
   );

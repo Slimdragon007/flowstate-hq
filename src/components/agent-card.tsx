@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { StatusBadge } from "./status-badge";
 
-interface Agent {
+export interface AgentData {
   id: string;
   name: string;
   role: string;
@@ -13,6 +13,7 @@ interface Agent {
   status: string;
   last_output: string | null;
   last_run_at: string | null;
+  mcp_target: string | null;
 }
 
 function timeAgo(dateStr: string | null): string {
@@ -26,11 +27,18 @@ function timeAgo(dateStr: string | null): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-export function AgentCard({ agent: initialAgent }: { agent: Agent }) {
+export function AgentCard({
+  agent: initialAgent,
+  onSelect,
+}: {
+  agent: AgentData;
+  onSelect?: (agent: AgentData) => void;
+}) {
   const [agent, setAgent] = useState(initialAgent);
   const [running, setRunning] = useState(false);
 
-  async function handleRun() {
+  async function handleRun(e: React.MouseEvent) {
+    e.stopPropagation();
     if (running) return;
     setRunning(true);
     setAgent((prev) => ({ ...prev, status: "working" }));
@@ -39,12 +47,13 @@ export function AgentCard({ agent: initialAgent }: { agent: Agent }) {
       const res = await fetch(`/api/agents/${agent.id}/run`, { method: "POST" });
       const data = await res.json();
 
-      setAgent((prev) => ({
-        ...prev,
+      const updated = {
+        ...agent,
         status: data.success ? "done" : "error",
-        last_output: data.output || prev.last_output,
+        last_output: data.output || agent.last_output,
         last_run_at: new Date().toISOString(),
-      }));
+      };
+      setAgent(updated);
     } catch {
       setAgent((prev) => ({ ...prev, status: "error" }));
     } finally {
@@ -53,12 +62,9 @@ export function AgentCard({ agent: initialAgent }: { agent: Agent }) {
   }
 
   return (
-    <button
-      onClick={handleRun}
-      disabled={running}
-      className={`group relative w-full overflow-hidden rounded-lg border border-border bg-surface text-left transition-all hover:border-border/80 hover:bg-elevated ${
-        running ? "cursor-wait" : "cursor-pointer"
-      }`}
+    <div
+      onClick={() => onSelect?.(agent)}
+      className={`group relative w-full overflow-hidden rounded-lg border border-border bg-surface text-left transition-all hover:border-border/80 hover:bg-elevated cursor-pointer`}
     >
       {/* Color accent bar */}
       <div
@@ -77,7 +83,21 @@ export function AgentCard({ agent: initialAgent }: { agent: Agent }) {
               <p className="text-xs text-muted">{agent.role}</p>
             </div>
           </div>
-          <StatusBadge status={agent.status} />
+
+          <div className="flex items-center gap-2">
+            <StatusBadge status={agent.status} />
+            <button
+              onClick={handleRun}
+              disabled={running}
+              className={`rounded-md border px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-wide transition-all ${
+                running
+                  ? "cursor-wait border-amber/30 text-amber"
+                  : "border-green/30 text-green hover:border-green/60 hover:bg-green/10"
+              }`}
+            >
+              {running ? "..." : "Run"}
+            </button>
+          </div>
         </div>
 
         {agent.last_output && (
@@ -101,6 +121,6 @@ export function AgentCard({ agent: initialAgent }: { agent: Agent }) {
           style={{ backgroundColor: agent.color }}
         />
       )}
-    </button>
+    </div>
   );
 }
