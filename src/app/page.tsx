@@ -1,4 +1,10 @@
-import { getOrganization, getAgents, getTeams, getActivityLog } from "@/lib/agents";
+import {
+  getOrganization,
+  getAgents,
+  getTeams,
+  getActivityLog,
+  getAgentMessages,
+} from "@/lib/agents";
 import { Header } from "@/components/header";
 import { DashboardClient } from "@/components/dashboard-client";
 
@@ -15,10 +21,11 @@ export const dynamic = "force-dynamic";
 
 export default async function Dashboard() {
   const org = await getOrganization("flowstate");
-  const [agents, teams, activity] = await Promise.all([
+  const [agents, teams, activity, messages] = await Promise.all([
     getAgents(org.id),
     getTeams(org.id),
     getActivityLog(org.id, 50),
+    getAgentMessages(org.id, 50),
   ]);
 
   const grouped = TEAM_ORDER.map((teamName) => {
@@ -33,7 +40,12 @@ export default async function Dashboard() {
     <div className="relative min-h-screen">
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-6">
-        <DashboardClient grouped={grouped} activity={activity} />
+        <DashboardClient
+          grouped={grouped}
+          agents={agents}
+          activity={activity}
+          messages={messages}
+        />
       </main>
     </div>
   );

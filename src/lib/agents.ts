@@ -114,3 +114,37 @@ export async function getTeams(orgId: string) {
     member_count: team.agent_team_members?.length ?? 0,
   }));
 }
+
+/** Get recent agent messages */
+export async function getAgentMessages(orgId: string, limit: number = 50) {
+  const { data, error } = await supabase
+    .from("agent_messages")
+    .select(
+      "*, from_agent:agents!agent_messages_from_agent_id_fkey(name, emoji, color), to_agent:agents!agent_messages_to_agent_id_fkey(name, emoji)"
+    )
+    .eq("org_id", orgId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data;
+}
+
+/** Send an agent message */
+export async function sendAgentMessage(
+  orgId: string,
+  fromAgentId: string | null,
+  toAgentId: string | null,
+  channel: string,
+  message: string,
+  metadata?: Record<string, unknown>
+) {
+  const { error } = await supabase.from("agent_messages").insert({
+    org_id: orgId,
+    from_agent_id: fromAgentId,
+    to_agent_id: toAgentId,
+    channel,
+    message,
+    metadata: metadata ?? null,
+  });
+  if (error) throw error;
+}

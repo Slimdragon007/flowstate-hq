@@ -6,6 +6,7 @@ import {
   updateAgentStatus,
   saveAgentOutput,
   logActivity,
+  sendAgentMessage,
 } from "@/lib/agents";
 import { callAgent } from "@/lib/anthropic";
 
@@ -48,7 +49,7 @@ export async function POST(
     const result = await callAgent(agent, context);
 
     if (result.success) {
-      // 5a. Success: save output, set done, log
+      // 5a. Success: save output, set done, log, broadcast to comms
       await saveAgentOutput(id, result.output);
       await updateAgentStatus(id, "done");
       await logActivity(
@@ -58,8 +59,15 @@ export async function POST(
         result.output.substring(0, 500),
         agent.zone
       );
+      await sendAgentMessage(
+        agent.org_id,
+        id,
+        null,
+        "status_update",
+        `${agent.name} completed run. Output: ${result.output.substring(0, 200)}...`
+      );
     } else {
-      // 5b. Error: set error status, log
+      // 5b. Error: set error status, log, alert to comms
       await updateAgentStatus(id, "error");
       await logActivity(
         agent.org_id,
@@ -67,6 +75,13 @@ export async function POST(
         `${agent.name} failed`,
         result.error ?? "Unknown error",
         agent.zone
+      );
+      await sendAgentMessage(
+        agent.org_id,
+        id,
+        null,
+        "alert",
+        `${agent.name} failed: ${result.error ?? "Unknown error"}`
       );
     }
 
