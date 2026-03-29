@@ -138,49 +138,78 @@ function IsoDesk({
         <rect x="-5" y="-10" width="10" height="8" rx="2" fill="#3a3a50" stroke="#4a4a60" strokeWidth="0.3" />
       </g>
 
-      {/* Agent person (sitting in chair) */}
-      <g transform="translate(0, 6)">
-        {/* Body/torso */}
-        <rect
-          x="-4"
-          y="-4"
-          width="8"
-          height="8"
-          rx="2"
-          fill={agent.color}
-          opacity="0.85"
-        />
-        {/* Head */}
-        <circle cx="0" cy="-8" r="5" fill="#e8d5b8" />
-        {/* Hair */}
-        <path
-          d="M-4,-11 Q0,-14 4,-11 Q5,-9 4,-8 L-4,-8 Q-5,-9 -4,-11 Z"
-          fill={agent.color}
-          opacity="0.9"
-        />
-        {/* Face emoji (unflipped) */}
-        <text
-          x="0"
-          y="-5"
-          textAnchor="middle"
-          fontSize="7"
-          className="select-none"
-          style={{ transform: flip ? "scale(-1,1)" : undefined, transformOrigin: "0 -5px" }}
-        >
-          {agent.emoji}
-        </text>
+      {/* Pixel art agent (sitting in chair) */}
+      <g transform="translate(0, 2)">
+        {/*
+          Pixel person: each "pixel" is a 2x2 rect
+          Grid centered at 0,0 - person is ~10px wide, ~18px tall
+          p = pixel size
+        */}
+        {(() => {
+          const p = 2; // pixel size
+          const skin = "#e8c8a0";
+          const shirt = agent.color;
+          const hair = agent.color === "#ffffff" ? "#555566" : agent.color;
+          const pants = "#334";
+          const shoe = "#222";
 
-        {isWorking && (
-          <g>
-            {/* Typing hands animation */}
-            <rect x="-6" y="2" width="3" height="2" rx="1" fill="#e8d5b8" opacity="0.8">
-              <animate attributeName="y" values="2;1;2" dur="0.3s" repeatCount="indefinite" />
-            </rect>
-            <rect x="3" y="2" width="3" height="2" rx="1" fill="#e8d5b8" opacity="0.8">
-              <animate attributeName="y" values="2;1;2" dur="0.3s" begin="0.15s" repeatCount="indefinite" />
-            </rect>
-          </g>
-        )}
+          // Hair row 1 (top of head)
+          const pixels: { x: number; y: number; c: string }[] = [
+            // Hair top
+            { x: -2, y: -16, c: hair }, { x: -1, y: -16, c: hair }, { x: 0, y: -16, c: hair }, { x: 1, y: -16, c: hair },
+            // Hair sides + forehead
+            { x: -3, y: -15, c: hair }, { x: -2, y: -15, c: hair }, { x: -1, y: -15, c: skin }, { x: 0, y: -15, c: skin }, { x: 1, y: -15, c: hair }, { x: 2, y: -15, c: hair },
+            // Face row 1 (eyes)
+            { x: -2, y: -14, c: skin }, { x: -1, y: -14, c: "#333" }, { x: 0, y: -14, c: skin }, { x: 1, y: -14, c: "#333" },
+            // Face row 2 (mouth)
+            { x: -2, y: -13, c: skin }, { x: -1, y: -13, c: skin }, { x: 0, y: -13, c: "#c88" }, { x: 1, y: -13, c: skin },
+            // Neck
+            { x: -1, y: -12, c: skin }, { x: 0, y: -12, c: skin },
+            // Shoulders + shirt
+            { x: -3, y: -11, c: shirt }, { x: -2, y: -11, c: shirt }, { x: -1, y: -11, c: shirt }, { x: 0, y: -11, c: shirt }, { x: 1, y: -11, c: shirt }, { x: 2, y: -11, c: shirt },
+            // Arms + torso
+            { x: -4, y: -10, c: skin }, { x: -3, y: -10, c: shirt }, { x: -2, y: -10, c: shirt }, { x: -1, y: -10, c: shirt }, { x: 0, y: -10, c: shirt }, { x: 1, y: -10, c: shirt }, { x: 2, y: -10, c: shirt }, { x: 3, y: -10, c: skin },
+            // Lower torso
+            { x: -3, y: -9, c: shirt }, { x: -2, y: -9, c: shirt }, { x: -1, y: -9, c: shirt }, { x: 0, y: -9, c: shirt }, { x: 1, y: -9, c: shirt }, { x: 2, y: -9, c: shirt },
+            // Hands reaching to keyboard
+            { x: -5, y: -8, c: skin }, { x: -4, y: -8, c: skin },
+            { x: 3, y: -8, c: skin }, { x: 4, y: -8, c: skin },
+            // Belt / waist
+            { x: -2, y: -8, c: "#444" }, { x: -1, y: -8, c: "#444" }, { x: 0, y: -8, c: "#444" }, { x: 1, y: -8, c: "#444" },
+            // Legs (sitting)
+            { x: -3, y: -7, c: pants }, { x: -2, y: -7, c: pants }, { x: -1, y: -7, c: pants }, { x: 0, y: -7, c: pants }, { x: 1, y: -7, c: pants }, { x: 2, y: -7, c: pants },
+            { x: -3, y: -6, c: pants }, { x: -2, y: -6, c: pants }, { x: 1, y: -6, c: pants }, { x: 2, y: -6, c: pants },
+            // Shoes
+            { x: -4, y: -5, c: shoe }, { x: -3, y: -5, c: shoe }, { x: 2, y: -5, c: shoe }, { x: 3, y: -5, c: shoe },
+          ];
+
+          return (
+            <>
+              {pixels.map((px, i) => (
+                <rect
+                  key={i}
+                  x={px.x * p}
+                  y={px.y * p + 24}
+                  width={p}
+                  height={p}
+                  fill={px.c}
+                  className="select-none"
+                />
+              ))}
+              {/* Typing animation: hands bob up and down */}
+              {isWorking && (
+                <>
+                  <rect x={-5 * p} y={0} width={p * 2} height={p} fill={skin}>
+                    <animate attributeName="y" values={`${-8 * p + 24};${-9 * p + 24};${-8 * p + 24}`} dur="0.35s" repeatCount="indefinite" />
+                  </rect>
+                  <rect x={3 * p} y={0} width={p * 2} height={p} fill={skin}>
+                    <animate attributeName="y" values={`${-8 * p + 24};${-9 * p + 24};${-8 * p + 24}`} dur="0.35s" begin="0.17s" repeatCount="indefinite" />
+                  </rect>
+                </>
+              )}
+            </>
+          );
+        })()}
       </g>
 
       {/* Status dot */}
