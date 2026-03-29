@@ -77,3 +77,53 @@ body::before {
 .animate-slide-in {
   animation: slide-in 0.2s ease-out;
 }
+
+/* Isometric office */
+.iso-container {
+  perspective: 1200px;
+  perspective-origin: 50% 30%;
+}
+
+.iso-floor {
+  transform: rotateX(55deg) rotateZ(-45deg);
+  transform-style: preserve-3d;
+}
+
+/* Isometric furniture elements need to "stand up" from the floor */
+.iso-wall-left {
+  transform: rotateX(-90deg);
+  transform-origin: bottom;
+}
+
+.iso-wall-right {
+  transform: rotateY(90deg) rotateX(-90deg);
+  transform-origin: bottom left;
+}
+
+@keyframes iso-typing {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(-1px); }
+  75% { transform: translateY(1px); }
+}
+
+.animate-iso-typing {
+  animation: iso-typing 0.4s ease-in-out infinite;
+}
+
+@keyframes iso-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(0, 255, 136, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(0, 255, 136, 0.6); }
+}
+
+.animate-iso-glow {
+  animation: iso-glow 2s ease-in-out infinite;
+}
+
+@keyframes screen-flicker {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+.animate-screen-flicker {
+  animation: screen-flicker 3s ease-in-out infinite;
+}
