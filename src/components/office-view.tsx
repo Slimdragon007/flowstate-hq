@@ -173,18 +173,6 @@ function MeetingRoom() {
   );
 }
 
-function Couch() {
-  return (
-    <g>
-      <ellipse cx="0" cy="6" rx="22" ry="5" fill="rgba(0,0,0,0.06)" />
-      <rect x="-18" y="-4" width="36" height="10" rx="3" fill="#3a3a42" stroke="#4a4a50" strokeWidth="0.5" />
-      <rect x="-18" y="-10" width="36" height="8" rx="3" fill="#444450" stroke="#555560" strokeWidth="0.5" />
-      <rect x="-15" y="-3" width="12" height="8" rx="2" fill="#444450" opacity="0.5" />
-      <rect x="3" y="-3" width="12" height="8" rx="2" fill="#444450" opacity="0.5" />
-      <rect x="-8" y="12" width="16" height="6" rx="1" fill="#b09070" stroke="#c4a882" strokeWidth="0.3" />
-    </g>
-  );
-}
 
 function PlantPot() {
   return (
@@ -207,52 +195,65 @@ function WaterCooler() {
   );
 }
 
-// -- Layout --
+// -- Layout: 6 zones in a 3x2 grid --
 const OFFICE_LAYOUT = {
   zones: {
-    core: {
-      area: { x: 40, y: 40, w: 340, h: 180 },
-      label: { text: "COMMAND", x: 210, y: 58, color: "#555" },
-      agents: [{ x: 160, y: 130, flip: false }],
+    executive: {
+      area: { x: 30, y: 30, w: 240, h: 200 },
+      label: { text: "EXECUTIVE", x: 150, y: 48, color: "#555" },
+      agents: [{ x: 150, y: 130, flip: false }],
     },
-    yelp: {
-      area: { x: 420, y: 40, w: 340, h: 180 },
-      label: { text: "YELP OPS", x: 590, y: 58, color: "#b08800" },
+    operations: {
+      area: { x: 280, y: 30, w: 240, h: 200 },
+      label: { text: "OPERATIONS", x: 400, y: 48, color: "#b08800" },
       agents: [
-        { x: 490, y: 110, flip: false },
-        { x: 590, y: 110, flip: true },
-        { x: 690, y: 110, flip: false },
+        { x: 340, y: 100, flip: false },
+        { x: 440, y: 100, flip: true },
+        { x: 390, y: 170, flip: false },
       ],
     },
-    flowstate: {
-      area: { x: 40, y: 260, w: 340, h: 200 },
-      label: { text: "FLOWSTATE LAB", x: 210, y: 278, color: "#7744aa" },
+    finance: {
+      area: { x: 530, y: 30, w: 240, h: 200 },
+      label: { text: "FINANCE", x: 650, y: 48, color: "#008844" },
       agents: [
-        { x: 100, y: 330, flip: false },
-        { x: 200, y: 330, flip: true },
-        { x: 100, y: 410, flip: false },
-        { x: 200, y: 410, flip: true },
+        { x: 610, y: 100, flip: false },
+        { x: 700, y: 100, flip: true },
       ],
     },
-    personal: {
-      area: { x: 420, y: 260, w: 340, h: 200 },
-      label: { text: "PERSONAL STACK", x: 590, y: 278, color: "#0088aa" },
+    marketing: {
+      area: { x: 30, y: 270, w: 240, h: 200 },
+      label: { text: "MARKETING", x: 150, y: 288, color: "#cc4422" },
       agents: [
-        { x: 490, y: 330, flip: false },
-        { x: 590, y: 330, flip: true },
-        { x: 690, y: 330, flip: false },
-        { x: 590, y: 410, flip: true },
+        { x: 100, y: 340, flip: false },
+        { x: 190, y: 340, flip: true },
+      ],
+    },
+    engineering: {
+      area: { x: 280, y: 270, w: 240, h: 200 },
+      label: { text: "ENGINEERING", x: 400, y: 288, color: "#2266cc" },
+      agents: [
+        { x: 320, y: 330, flip: false },
+        { x: 420, y: 330, flip: true },
+        { x: 320, y: 410, flip: false },
+        { x: 420, y: 410, flip: true },
+      ],
+    },
+    security: {
+      area: { x: 530, y: 270, w: 240, h: 200 },
+      label: { text: "SECURITY", x: 650, y: 288, color: "#7733aa" },
+      agents: [
+        { x: 610, y: 340, flip: false },
+        { x: 700, y: 340, flip: true },
       ],
     },
   },
   features: {
-    meetingRoom: { x: 330, y: 160 },
-    couch: { x: 400, y: 430 },
+    meetingRoom: { x: 400, y: 240 },
     plants: [
-      { x: 60, y: 140 }, { x: 310, y: 140 }, { x: 740, y: 140 },
-      { x: 60, y: 420 }, { x: 310, y: 420 }, { x: 740, y: 420 },
+      { x: 50, y: 140 }, { x: 260, y: 140 }, { x: 510, y: 140 }, { x: 750, y: 140 },
+      { x: 50, y: 400 }, { x: 260, y: 400 }, { x: 510, y: 400 }, { x: 750, y: 400 },
     ],
-    waterCooler: { x: 380, y: 300 },
+    waterCooler: { x: 760, y: 240 },
   },
 };
 
@@ -275,10 +276,12 @@ export function OfficeView({ agents }: { agents: AgentData[] }) {
   const idleCount = displayAgents.filter((a) => a.status === "idle").length;
 
   const agentsByZone: Record<string, AgentData[]> = {
-    core: displayAgents.filter((a) => a.zone === "core"),
-    yelp: displayAgents.filter((a) => a.zone === "yelp"),
-    flowstate: displayAgents.filter((a) => a.zone === "flowstate"),
-    personal: displayAgents.filter((a) => a.zone === "personal"),
+    executive: displayAgents.filter((a) => a.zone === "executive"),
+    operations: displayAgents.filter((a) => a.zone === "operations"),
+    finance: displayAgents.filter((a) => a.zone === "finance"),
+    marketing: displayAgents.filter((a) => a.zone === "marketing"),
+    engineering: displayAgents.filter((a) => a.zone === "engineering"),
+    security: displayAgents.filter((a) => a.zone === "security"),
   };
 
   // Simulation: run agents one by one with visual feedback
@@ -398,9 +401,10 @@ export function OfficeView({ agents }: { agents: AgentData[] }) {
             {/* Walls */}
             <rect x="20" y="20" width="760" height="460" rx="8" fill="none" stroke="#b8a890" strokeWidth="3" />
 
-            {/* Zone dividers (subtle) */}
-            <line x1="400" y1="30" x2="400" y2="470" stroke="#c4b8a8" strokeWidth="1" strokeDasharray="6,4" />
-            <line x1="30" y1="240" x2="770" y2="240" stroke="#c4b8a8" strokeWidth="1" strokeDasharray="6,4" />
+            {/* Zone dividers (3x2 grid) */}
+            <line x1="275" y1="30" x2="275" y2="470" stroke="#c4b8a8" strokeWidth="1" strokeDasharray="6,4" />
+            <line x1="525" y1="30" x2="525" y2="470" stroke="#c4b8a8" strokeWidth="1" strokeDasharray="6,4" />
+            <line x1="30" y1="265" x2="770" y2="265" stroke="#c4b8a8" strokeWidth="1" strokeDasharray="6,4" />
 
             {/* Zone labels */}
             {Object.entries(OFFICE_LAYOUT.zones).map(([zone, config]) => (
@@ -433,9 +437,7 @@ export function OfficeView({ agents }: { agents: AgentData[] }) {
             <g transform={`translate(${OFFICE_LAYOUT.features.meetingRoom.x}, ${OFFICE_LAYOUT.features.meetingRoom.y})`}>
               <MeetingRoom />
             </g>
-            <g transform={`translate(${OFFICE_LAYOUT.features.couch.x}, ${OFFICE_LAYOUT.features.couch.y})`}>
-              <Couch />
-            </g>
+            {/* Couch area removed for 3x2 grid layout */}
             <g transform={`translate(${OFFICE_LAYOUT.features.waterCooler.x}, ${OFFICE_LAYOUT.features.waterCooler.y})`}>
               <WaterCooler />
             </g>

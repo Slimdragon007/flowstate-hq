@@ -9,13 +9,22 @@ import { Header } from "@/components/header";
 import { DashboardClient } from "@/components/dashboard-client";
 
 const ZONE_TO_TEAM: Record<string, string> = {
-  core: "Command",
-  yelp: "Yelp Ops",
-  flowstate: "FlowstateAI Lab",
-  personal: "Personal Stack",
+  executive: "Executive",
+  operations: "Operations",
+  finance: "Finance",
+  marketing: "Marketing",
+  engineering: "Engineering",
+  security: "Security",
 };
 
-const TEAM_ORDER = ["Command", "Yelp Ops", "FlowstateAI Lab", "Personal Stack"];
+const TEAM_ORDER = [
+  "Executive",
+  "Operations",
+  "Finance",
+  "Marketing",
+  "Engineering",
+  "Security",
+];
 
 export const dynamic = "force-dynamic";
 

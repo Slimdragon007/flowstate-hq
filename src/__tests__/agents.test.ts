@@ -28,9 +28,9 @@ describe("Data Layer: agents.ts", () => {
     orgId = org.id;
 
     const agents = await getAgents(orgId);
-    const oracle = agents.find((a) => a.name === "Oracle");
-    if (!oracle) throw new Error("Oracle agent not found in test setup");
-    oracleId = oracle.id;
+    const chief = agents.find((a) => a.name === "Chief of Staff");
+    if (!chief) throw new Error("Chief of Staff agent not found in test setup");
+    oracleId = chief.id; // reusing variable name for convenience
   });
 
   describe("getOrganization", () => {
@@ -48,9 +48,9 @@ describe("Data Layer: agents.ts", () => {
   });
 
   describe("getAgents", () => {
-    it("returns all 12 agents for the org", async () => {
+    it("returns all 14 agents for the org", async () => {
       const agents = await getAgents(orgId);
-      expect(agents).toHaveLength(12);
+      expect(agents).toHaveLength(14);
     });
 
     it("agents are ordered by display_order", async () => {
@@ -81,8 +81,8 @@ describe("Data Layer: agents.ts", () => {
     it("returns a single agent by ID", async () => {
       const agent = await getAgent(oracleId);
       expect(agent).toBeDefined();
-      expect(agent.name).toBe("Oracle");
-      expect(agent.zone).toBe("core");
+      expect(agent.name).toBe("Chief of Staff");
+      expect(agent.zone).toBe("executive");
     });
 
     it("rejects on invalid ID", async () => {
@@ -94,10 +94,10 @@ describe("Data Layer: agents.ts", () => {
 
   describe("getAgentsByZone", () => {
     it("returns agents filtered by zone", async () => {
-      const yelp = await getAgentsByZone(orgId, "yelp");
-      expect(yelp.length).toBe(3);
-      for (const agent of yelp) {
-        expect(agent.zone).toBe("yelp");
+      const eng = await getAgentsByZone(orgId, "engineering");
+      expect(eng.length).toBe(4);
+      for (const agent of eng) {
+        expect(agent.zone).toBe("engineering");
       }
     });
 
@@ -108,9 +108,9 @@ describe("Data Layer: agents.ts", () => {
   });
 
   describe("getTeams", () => {
-    it("returns 4 teams with member counts", async () => {
+    it("returns 6 teams with member counts", async () => {
       const teams = await getTeams(orgId);
-      expect(teams).toHaveLength(4);
+      expect(teams).toHaveLength(6);
       for (const team of teams!) {
         expect(team.name).toBeTruthy();
         expect(team.member_count).toBeGreaterThan(0);

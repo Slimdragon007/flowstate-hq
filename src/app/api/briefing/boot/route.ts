@@ -7,6 +7,7 @@ import {
   updateAgentStatus,
   saveAgentOutput,
   logActivity,
+  sendAgentMessage,
 } from "@/lib/agents";
 import { callAgent } from "@/lib/anthropic";
 
@@ -18,94 +19,65 @@ export async function POST() {
     // 2. Get all agents
     const agents = await getAgents(org.id);
 
-    // 3. Find Oracle (core zone, display_order 0 or name = Oracle)
-    const oracle = agents.find(
-      (a) => a.name === "Oracle" || (a.zone === "core" && a.display_order === 0)
+    // 3. Find Chief of Staff (executive zone, display_order 0)
+    const chief = agents.find(
+      (a) => a.name === "Chief of Staff" || (a.zone === "executive" && a.display_order === 0)
     );
-    if (!oracle) {
+    if (!chief) {
       return NextResponse.json(
-        { success: false, error: "Oracle agent not found" },
+        { success: false, error: "Chief of Staff not found" },
         { status: 404 }
       );
     }
 
-    // 4. Run Oracle first (no context)
-    await updateAgentStatus(oracle.id, "working");
+    // 4. Run Chief of Staff first (no context)
+    await updateAgentStatus(chief.id, "working");
     await logActivity(
       org.id,
-      oracle.id,
-      "Oracle booting",
+      chief.id,
+      "Chief of Staff booting",
       "Morning briefing sequence initiated",
-      "core"
+      "executive"
     );
 
-    const oracleResult = await callAgent(oracle);
+    const chiefResult = await callAgent(chief);
 
-    if (!oracleResult.success) {
-      await updateAgentStatus(oracle.id, "error");
-      await logActivity(
-        org.id,
-        oracle.id,
-        "Oracle failed",
-        oracleResult.error ?? "Unknown error",
-        "core"
-      );
-      return NextResponse.json({
-        success: false,
-        error: `Oracle failed: ${oracleResult.error}`,
-      });
+    if (!chiefResult.success) {
+      await updateAgentStatus(chief.id, "error");
+      await logActivity(org.id, chief.id, "Chief of Staff failed", chiefResult.error ?? "Unknown error", "executive");
+      await sendAgentMessage(org.id, chief.id, null, "alert", `Chief of Staff failed: ${chiefResult.error ?? "Unknown error"}`);
+      return NextResponse.json({ success: false, error: `Chief of Staff failed: ${chiefResult.error}` });
     }
 
-    await saveAgentOutput(oracle.id, oracleResult.output);
-    await updateAgentStatus(oracle.id, "done");
-    await logActivity(
-      org.id,
-      oracle.id,
-      "Oracle completed",
-      oracleResult.output.substring(0, 500),
-      "core"
-    );
+    await saveAgentOutput(chief.id, chiefResult.output);
+    await updateAgentStatus(chief.id, "done");
+    await logActivity(org.id, chief.id, "Chief of Staff completed", chiefResult.output.substring(0, 500), "executive");
+    await sendAgentMessage(org.id, chief.id, null, "general", `Morning briefing context loaded. ${chiefResult.output.substring(0, 200)}...`);
 
-    // 5. Run remaining agents in parallel batches of 3
-    const remainingAgents = agents.filter((a) => a.id !== oracle.id && a.is_active);
-    const results: Record<string, string> = { [oracle.id]: oracleResult.output };
+    // 5. Run remaining agents in parallel batches of 4
+    const remainingAgents = agents.filter((a) => a.id !== chief.id && a.is_active);
+    const results: Record<string, string> = { [chief.id]: chiefResult.output };
 
-    for (let i = 0; i < remainingAgents.length; i += 3) {
-      const batch = remainingAgents.slice(i, i + 3);
+    for (let i = 0; i < remainingAgents.length; i += 4) {
+      const batch = remainingAgents.slice(i, i + 4);
 
       const batchResults = await Promise.allSettled(
         batch.map(async (agent) => {
           await updateAgentStatus(agent.id, "working");
-          await logActivity(
-            org.id,
-            agent.id,
-            `${agent.name} started`,
-            "Briefing run with Oracle context",
-            agent.zone
-          );
+          await logActivity(org.id, agent.id, `${agent.name} started`, "Briefing run with Chief of Staff context", agent.zone);
 
-          const result = await callAgent(agent, oracleResult.output);
+          const result = await callAgent(agent, chiefResult.output);
 
           if (result.success) {
             await saveAgentOutput(agent.id, result.output);
             await updateAgentStatus(agent.id, "done");
-            await logActivity(
-              org.id,
-              agent.id,
-              `${agent.name} completed`,
-              result.output.substring(0, 500),
-              agent.zone
-            );
+            await logActivity(org.id, agent.id, `${agent.name} completed`, result.output.substring(0, 500), agent.zone);
+            await sendAgentMessage(org.id, agent.id, null, "status_update", `${agent.name} completed. ${result.output.substring(0, 200)}...`);
             return { agentId: agent.id, output: result.output };
           } else {
             await updateAgentStatus(agent.id, "error");
-            await logActivity(
-              org.id,
-              agent.id,
-              `${agent.name} failed`,
-              result.error ?? "Unknown error",
-              agent.zone
-            );
+            await logActivity(org.id, agent.id, `${agent.name} failed`, result.error ?? "Unknown error", agent.zone);
+            await sendAgentMessage(org.id, agent.id, null, "alert", `${agent.name} failed: ${result.error ?? "Unknown error"}`);
             return { agentId: agent.id, output: "", error: result.error };
           }
         })
