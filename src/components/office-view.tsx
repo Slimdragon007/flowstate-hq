@@ -28,7 +28,7 @@ function PixelPerson({
   isWorking: boolean;
   flip?: boolean;
 }) {
-  const p = 2;
+  const p = 3;
   const skin = "#e8c8a0";
   const hair = color === "#ffffff" ? "#555566" : color;
   const pants = "#334";
@@ -53,15 +53,15 @@ function PixelPerson({
   return (
     <g style={{ transform: flip ? "scale(-1,1)" : undefined }}>
       {pixels.map((px, i) => (
-        <rect key={i} x={px.x * p} y={px.y * p + 24} width={p} height={p} fill={px.c} />
+        <rect key={i} x={px.x * p} y={px.y * p + 36} width={p} height={p} fill={px.c} />
       ))}
       {isWorking && (
         <>
           <rect x={-5 * p} y={0} width={p * 2} height={p} fill={skin}>
-            <animate attributeName="y" values={`${-8 * p + 24};${-9 * p + 24};${-8 * p + 24}`} dur="0.35s" repeatCount="indefinite" />
+            <animate attributeName="y" values={`${-8 * p + 36};${-9 * p + 36};${-8 * p + 36}`} dur="0.35s" repeatCount="indefinite" />
           </rect>
           <rect x={3 * p} y={0} width={p * 2} height={p} fill={skin}>
-            <animate attributeName="y" values={`${-8 * p + 24};${-9 * p + 24};${-8 * p + 24}`} dur="0.35s" begin="0.17s" repeatCount="indefinite" />
+            <animate attributeName="y" values={`${-8 * p + 36};${-9 * p + 36};${-8 * p + 36}`} dur="0.35s" begin="0.17s" repeatCount="indefinite" />
           </rect>
         </>
       )}
