@@ -10,7 +10,7 @@
 ## Supabase
 - **Project ID:** zxgzlrmrnqgrwhahokja
 - **URL:** https://zxgzlrmrnqgrwhahokja.supabase.co
-- **Anon Key:** eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4Z3pscm1ybnFncndoYWhva2phIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MTk0NzcsImV4cCI6MjA5MDM5NTQ3N30.qzj6JMiWOsCrk-wpoisTf73GtPzpl492rSdJcyFMogs
+- **Anon Key:** (see .env.local)
 - **Region:** us-east-1
 - **Tables:** organizations (1 row: FlowstateAI), agents (12 rows seeded, linked to org), agent_blueprints (8 starter templates), workflows, briefings, activity_log
 - **Multi-tenant:** All tables have org_id column. Every query must filter by org_id. RLS will scope to org when multi-tenant is enabled.
@@ -18,10 +18,10 @@
 
 ## Env Vars Required
 ```
-NEXT_PUBLIC_SUPABASE_URL=https://zxgzlrmrnqgrwhahokja.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4Z3pscm1ybnFncndoYWhva2phIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4MTk0NzcsImV4cCI6MjA5MDM5NTQ3N30.qzj6JMiWOsCrk-wpoisTf73GtPzpl492rSdJcyFMogs
-SUPABASE_SERVICE_ROLE_KEY=(get from Supabase dashboard > Settings > API)
-ANTHROPIC_API_KEY=(get from console.anthropic.com)
+NEXT_PUBLIC_SUPABASE_URL=(see .env.local)
+NEXT_PUBLIC_SUPABASE_ANON_KEY=(see .env.local)
+SUPABASE_SERVICE_ROLE_KEY=(see .env.local)
+ANTHROPIC_API_KEY=(see .env.local)
 ```
 
 ## Data Contract
