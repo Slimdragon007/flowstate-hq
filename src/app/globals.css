@@ -34,37 +34,20 @@ body::before {
 }
 
 @layer utilities {
-  .text-status-idle {
-    color: var(--muted);
-  }
-  .text-status-working {
-    color: var(--amber);
-  }
-  .text-status-done {
-    color: var(--green);
-  }
-  .text-status-error {
-    color: var(--red);
-  }
-  .bg-status-idle {
-    background-color: var(--muted);
-  }
-  .bg-status-working {
-    background-color: var(--amber);
-  }
-  .bg-status-done {
-    background-color: var(--green);
-  }
-  .bg-status-error {
-    background-color: var(--red);
-  }
+  .text-status-idle { color: var(--muted); }
+  .text-status-working { color: var(--amber); }
+  .text-status-done { color: var(--green); }
+  .text-status-error { color: var(--red); }
+  .bg-status-idle { background-color: var(--muted); }
+  .bg-status-working { background-color: var(--amber); }
+  .bg-status-done { background-color: var(--green); }
+  .bg-status-error { background-color: var(--red); }
 }
 
 @keyframes pulse-glow {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
-
 .animate-pulse-glow {
   animation: pulse-glow 1.5s ease-in-out infinite;
 }
@@ -73,57 +56,122 @@ body::before {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }
 }
-
 .animate-slide-in {
   animation: slide-in 0.2s ease-out;
 }
 
-/* Isometric office */
-.iso-container {
-  perspective: 1200px;
-  perspective-origin: 50% 30%;
+/* ========== ISOMETRIC OFFICE ========== */
+
+.iso-scene {
+  perspective: 1000px;
+  perspective-origin: 50% 35%;
 }
 
 .iso-floor {
-  transform: rotateX(55deg) rotateZ(-45deg);
+  transform: rotateX(60deg) rotateZ(-45deg);
   transform-style: preserve-3d;
+  background:
+    repeating-conic-gradient(#ddd2c2 0% 25%, #d6cab8 0% 50%) 0 0 / 40px 40px;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.4),
+    0 0 0 2px #c4b8a8;
+  position: relative;
 }
 
-/* Isometric furniture elements need to "stand up" from the floor */
-.iso-wall-left {
+/* Walls (3D edges of the floor) */
+.iso-floor::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -12px;
+  width: 100%;
+  height: 12px;
+  background: #b0a090;
   transform: rotateX(-90deg);
-  transform-origin: bottom;
+  transform-origin: top;
 }
 
-.iso-wall-right {
-  transform: rotateY(90deg) rotateX(-90deg);
-  transform-origin: bottom left;
+.iso-floor::after {
+  content: "";
+  position: absolute;
+  right: -12px;
+  top: 0;
+  width: 12px;
+  height: 100%;
+  background: #a09080;
+  transform: rotateY(90deg);
+  transform-origin: left;
 }
 
-@keyframes iso-typing {
-  0%, 100% { transform: translateY(0); }
-  25% { transform: translateY(-1px); }
-  75% { transform: translateY(1px); }
+/* Agent sprite: counter-rotate to face camera */
+.iso-agent {
+  transform: rotateZ(45deg) rotateX(-60deg);
+  transform-style: preserve-3d;
+  transition: left 1.5s ease-in-out, top 1.5s ease-in-out;
 }
 
-.animate-iso-typing {
-  animation: iso-typing 0.4s ease-in-out infinite;
+/* Desk on the floor */
+.iso-desk {
+  width: 36px;
+  height: 24px;
+  background: #c4a882;
+  border: 1px solid #d4b892;
+  border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
 }
 
-@keyframes iso-glow {
-  0%, 100% { box-shadow: 0 0 8px rgba(0, 255, 136, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(0, 255, 136, 0.6); }
+/* Monitor on desk */
+.iso-monitor {
+  width: 20px;
+  height: 14px;
+  background: #1a1a22;
+  border: 1px solid #333;
+  border-radius: 2px;
+  position: relative;
 }
 
-.animate-iso-glow {
-  animation: iso-glow 2s ease-in-out infinite;
+.iso-monitor-screen {
+  position: absolute;
+  inset: 2px;
+  border-radius: 1px;
+}
+
+/* Chat bubble */
+.iso-bubble {
+  transform: rotateZ(45deg) rotateX(-60deg);
+  animation: bubble-pop 0.3s ease-out;
+}
+
+@keyframes bubble-pop {
+  from { transform: rotateZ(45deg) rotateX(-60deg) scale(0); }
+  to { transform: rotateZ(45deg) rotateX(-60deg) scale(1); }
+}
+
+/* Zone label on floor */
+.iso-zone-label {
+  transform: rotateZ(45deg) rotateX(-60deg);
+  pointer-events: none;
+}
+
+/* Meeting table */
+.iso-meeting-table {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #c4a882;
+  border: 2px solid #d4b892;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+}
+
+/* Plant pot */
+.iso-plant {
+  transform: rotateZ(45deg) rotateX(-60deg);
 }
 
 @keyframes screen-flicker {
   0%, 100% { opacity: 0.8; }
   50% { opacity: 1; }
 }
-
 .animate-screen-flicker {
-  animation: screen-flicker 3s ease-in-out infinite;
+  animation: screen-flicker 2s ease-in-out infinite;
 }
