@@ -18,36 +18,53 @@ const SCREEN_BG: Record<string, string> = {
   error: "#2a1010",
 };
 
-// Desk positions on the floor (x%, y% of floor dimensions)
+// Desk positions (x, y in SVG coordinates out of 600x440)
 const DESK_POSITIONS: Record<string, { x: number; y: number }[]> = {
-  executive: [{ x: 12, y: 12 }],
-  operations: [{ x: 38, y: 8 }, { x: 50, y: 8 }, { x: 44, y: 22 }],
-  finance: [{ x: 78, y: 8 }, { x: 88, y: 8 }],
-  marketing: [{ x: 10, y: 62 }, { x: 22, y: 62 }],
-  engineering: [{ x: 38, y: 58 }, { x: 50, y: 58 }, { x: 38, y: 74 }, { x: 50, y: 74 }],
-  security: [{ x: 78, y: 62 }, { x: 88, y: 62 }],
+  executive: [{ x: 80, y: 65 }],
+  operations: [{ x: 235, y: 50 }, { x: 310, y: 50 }, { x: 270, y: 110 }],
+  finance: [{ x: 470, y: 50 }, { x: 540, y: 50 }],
+  marketing: [{ x: 70, y: 290 }, { x: 145, y: 290 }],
+  engineering: [{ x: 240, y: 275 }, { x: 315, y: 275 }, { x: 240, y: 345 }, { x: 315, y: 345 }],
+  security: [{ x: 470, y: 290 }, { x: 540, y: 290 }],
 };
 
-const MEETING_POS = { x: 45, y: 40 };
+const MEETING = { x: 290, y: 195 };
 
-const ZONE_META: Record<string, { label: string; color: string; lx: number; ly: number }> = {
-  executive: { label: "EXECUTIVE", color: "#777", lx: 12, ly: 5 },
-  operations: { label: "OPERATIONS", color: "#b08800", lx: 44, ly: 2 },
-  finance: { label: "FINANCE", color: "#008844", lx: 83, ly: 2 },
-  marketing: { label: "MARKETING", color: "#cc4422", lx: 16, ly: 55 },
-  engineering: { label: "ENGINEERING", color: "#2266cc", lx: 44, ly: 52 },
-  security: { label: "SECURITY", color: "#7733aa", lx: 83, ly: 55 },
-};
+const ZONE_LABELS: { text: string; x: number; y: number; color: string }[] = [
+  { text: "EXECUTIVE", x: 80, y: 30, color: "#777" },
+  { text: "OPERATIONS", x: 270, y: 30, color: "#b08800" },
+  { text: "FINANCE", x: 505, y: 30, color: "#008844" },
+  { text: "MARKETING", x: 108, y: 260, color: "#cc4422" },
+  { text: "ENGINEERING", x: 278, y: 250, color: "#2266cc" },
+  { text: "SECURITY", x: 505, y: 260, color: "#7733aa" },
+];
 
-// Pixel person as inline SVG
-function PixelSprite({ color, isWorking }: { color: string; isWorking: boolean }) {
-  const p = 2;
+const ZONE_ORDER = ["executive", "operations", "finance", "marketing", "engineering", "security"];
+
+// Pixel person rendered as SVG rects
+function PixelAgent({
+  agent,
+  targetX,
+  targetY,
+  onClick,
+}: {
+  agent: AgentData;
+  targetX: number;
+  targetY: number;
+  onClick: () => void;
+}) {
+  const isWorking = agent.status === "working";
+  const p = 2.5;
   const skin = "#e8c8a0";
+  const color = agent.color;
   const hair = color === "#ffffff" ? "#555" : color;
   const pants = "#334455";
 
   return (
-    <svg width="24" height="32" viewBox="-8 -18 16 32" className="select-none">
+    <g onClick={onClick} className="cursor-pointer" style={{ transition: "transform 1.5s ease-in-out" }} transform={`translate(${targetX}, ${targetY})`}>
+      {/* Shadow */}
+      <ellipse cx="0" cy={4 * p} rx={3 * p} ry={p} fill="rgba(0,0,0,0.12)" />
+
       {/* Hair */}
       <rect x={-1 * p} y={-8 * p} width={3 * p} height={p} fill={hair} />
       <rect x={-2 * p} y={-7 * p} width={4 * p} height={p} fill={hair} />
@@ -77,7 +94,8 @@ function PixelSprite({ color, isWorking }: { color: string; isWorking: boolean }
       {/* Shoes */}
       <rect x={-2 * p} y={3 * p} width={2 * p} height={p} fill="#222" />
       <rect x={1 * p} y={3 * p} width={2 * p} height={p} fill="#222" />
-      {/* Typing hands */}
+
+      {/* Typing hands when working */}
       {isWorking && (
         <>
           <rect x={-4 * p} y={-2 * p} width={p} height={p} fill={skin}>
@@ -88,91 +106,47 @@ function PixelSprite({ color, isWorking }: { color: string; isWorking: boolean }
           </rect>
         </>
       )}
-    </svg>
-  );
-}
-
-// Agent on the floor
-function FloorAgent({
-  agent,
-  x,
-  y,
-  inMeeting,
-  onClick,
-}: {
-  agent: AgentData;
-  x: number;
-  y: number;
-  inMeeting: boolean;
-  onClick: () => void;
-}) {
-  const isWorking = agent.status === "working";
-  const targetX = inMeeting ? MEETING_POS.x : x;
-  const targetY = inMeeting ? MEETING_POS.y : y;
-
-  return (
-    <div
-      className="iso-agent absolute cursor-pointer"
-      style={{
-        left: `${targetX}%`,
-        top: `${targetY}%`,
-        zIndex: Math.round(targetY),
-        marginLeft: -12,
-        marginTop: -36,
-      }}
-      onClick={onClick}
-    >
-      {/* Pixel person */}
-      <PixelSprite color={agent.color} isWorking={isWorking} />
 
       {/* Status dot */}
-      <div
-        className={`absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border border-white/20 ${isWorking ? "animate-pulse" : ""}`}
-        style={{ backgroundColor: STATUS_COLOR[agent.status] }}
-      />
+      <circle cx={4 * p} cy={-8 * p} r={p} fill={STATUS_COLOR[agent.status]}>
+        {isWorking && <animate attributeName="opacity" values="1;0.3;1" dur="1s" repeatCount="indefinite" />}
+      </circle>
 
       {/* Name label */}
-      <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap">
-        <span className="rounded bg-black/50 px-1 py-0.5 font-mono text-[7px] font-bold text-white">
-          {agent.name}
-        </span>
-      </div>
+      <text x="0" y={6 * p} textAnchor="middle" fill="#665544" fontSize="6" fontWeight="bold" fontFamily="monospace">{agent.name}</text>
 
-      {/* Chat bubble when working */}
+      {/* Chat bubble */}
       {isWorking && (
-        <div className="iso-bubble absolute -right-8 -top-6 rounded-lg border border-amber/30 bg-surface/95 px-1.5 py-0.5 backdrop-blur-sm">
-          <span className="font-mono text-[6px] text-amber">working...</span>
-        </div>
+        <g>
+          <rect x={5 * p} y={-10 * p} width="32" height="10" rx="3" fill="white" stroke="#ddd" strokeWidth="0.5" />
+          <text x={5 * p + 16} y={-10 * p + 7} textAnchor="middle" fontSize="4" fill="#b08800" fontFamily="monospace">working...</text>
+        </g>
       )}
-    </div>
+    </g>
   );
 }
 
-// Desk on the floor (stays flat)
-function FloorDesk({ x, y, hasMonitor, screenColor }: { x: number; y: number; hasMonitor?: boolean; screenColor?: string }) {
+// Desk SVG element
+function Desk({ x, y, screenColor }: { x: number; y: number; screenColor: string }) {
   return (
-    <div
-      className="absolute"
-      style={{ left: `${x}%`, top: `${y}%`, marginLeft: -18, marginTop: -8 }}
-    >
-      {/* Monitor */}
-      {hasMonitor && (
-        <div className="iso-agent absolute -top-4 left-1/2 -translate-x-1/2">
-          <div className="iso-monitor">
-            <div className="iso-monitor-screen" style={{ background: screenColor || "#1a2a3a" }} />
-          </div>
-        </div>
-      )}
+    <g transform={`translate(${x}, ${y})`}>
       {/* Desk surface */}
-      <div className="iso-desk" />
-    </div>
+      <rect x="-18" y="-2" width="36" height="14" rx="1" fill="#c4a882" stroke="#d4b892" strokeWidth="0.5" />
+      {/* Desk front */}
+      <rect x="-16" y="12" width="32" height="2" fill="#b09070" />
+      {/* Monitor */}
+      <rect x="-8" y="-14" width="16" height="11" rx="1" fill="#1a1a22" stroke="#333" strokeWidth="0.5" />
+      <rect x="-6" y="-12" width="12" height="7" rx="0.5" fill={screenColor} />
+      <rect x="-6" y="-12" width="12" height="7" rx="0.5" fill="none" stroke={screenColor === "#332800" ? "#ffcc00" : screenColor === "#0a2815" ? "#00cc66" : "#555"} strokeWidth="0.3" opacity="0.5" />
+      {/* Monitor stand */}
+      <rect x="-1.5" y="-3" width="3" height="2" fill="#2a2a30" />
+      {/* Keyboard */}
+      <rect x="-6" y="1" width="8" height="2" rx="0.5" fill="#2a2a30" />
+      {/* Chair (behind) */}
+      <ellipse cx="0" cy="20" rx="7" ry="3" fill="#2a2a38" />
+    </g>
   );
 }
-
-// Zone labels
-const ZONE_ORDER = ["executive", "operations", "finance", "marketing", "engineering", "security"];
-
-// Mobile uses the same isometric view with horizontal scroll
 
 export function OfficeView({ agents }: { agents: AgentData[] }) {
   const [selectedAgent, setSelectedAgent] = useState<AgentData | null>(null);
@@ -186,20 +160,18 @@ export function OfficeView({ agents }: { agents: AgentData[] }) {
   }, [agents, simulating]);
 
   const displayAgents = simulating ? simAgents : agents;
-
   const workingCount = displayAgents.filter((a) => a.status === "working").length;
   const doneCount = displayAgents.filter((a) => a.status === "done").length;
   const idleCount = displayAgents.filter((a) => a.status === "idle").length;
 
   const runSimulation = useCallback(async () => {
     setSimulating(true);
-    setSimLog(["Briefing starting..."]);
+    setSimLog(["Briefing starting... agents heading to meeting room."]);
     setMeetingActive(true);
 
     const agentsCopy = agents.map((a) => ({ ...a, status: "idle" as string }));
     setSimAgents(agentsCopy);
 
-    // Wait for walk animation
     await new Promise((r) => setTimeout(r, 2000));
 
     for (let i = 0; i < agentsCopy.length; i++) {
@@ -224,18 +196,17 @@ export function OfficeView({ agents }: { agents: AgentData[] }) {
       }
     }
 
-    setSimLog((prev) => [...prev, "Briefing complete. Agents returning to desks."]);
+    setSimLog((prev) => [...prev, "Briefing complete. Returning to desks."]);
     setMeetingActive(false);
     setSimulating(false);
   }, [agents]);
 
-  // Build agent position map
+  // Build positions
   const agentPositions: { agent: AgentData; x: number; y: number }[] = [];
-  const agentsByZone: Record<string, AgentData[]> = {};
   for (const zone of ZONE_ORDER) {
-    agentsByZone[zone] = displayAgents.filter((a) => a.zone === zone);
+    const zoneAgents = displayAgents.filter((a) => a.zone === zone);
     const positions = DESK_POSITIONS[zone] || [];
-    agentsByZone[zone].forEach((agent, i) => {
+    zoneAgents.forEach((agent, i) => {
       const pos = positions[i];
       if (pos) agentPositions.push({ agent, x: pos.x, y: pos.y });
     });
@@ -256,96 +227,90 @@ export function OfficeView({ agents }: { agents: AgentData[] }) {
         </button>
       </div>
 
-      {/* Isometric office - works on all screens */}
-      <div className="overflow-x-auto">
-        <div className="flex gap-4" style={{ minWidth: 600 }}>
-          <div className="flex-1 flex items-center justify-center py-4 md:py-8">
-            <div className="iso-scene w-full" style={{ maxWidth: 700, minHeight: 350 }}>
-              <div className="iso-floor mx-auto" style={{ width: "min(550px, 85vw)", height: "min(400px, 65vw)", minWidth: 320, minHeight: 240 }}>
+      {/* Isometric office: CSS tilt on container, SVG content inside */}
+      <div className="flex gap-4">
+        <div className="flex-1 overflow-x-auto">
+          <div className="iso-scene mx-auto" style={{ width: "100%", maxWidth: 750, minHeight: 380 }}>
+            <div
+              className="iso-floor mx-auto"
+              style={{ width: 600, height: 440, position: "relative" }}
+            >
+              {/* All office content as a single SVG - no nested 3D transforms */}
+              <svg
+                viewBox="0 0 600 440"
+                width="600"
+                height="440"
+                style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+              >
+                {/* Zone divider lines */}
+                <line x1="200" y1="15" x2="200" y2="425" stroke="#b8a89040" strokeWidth="1" strokeDasharray="4,3" />
+                <line x1="400" y1="15" x2="400" y2="425" stroke="#b8a89040" strokeWidth="1" strokeDasharray="4,3" />
+                <line x1="15" y1="225" x2="585" y2="225" stroke="#b8a89040" strokeWidth="1" strokeDasharray="4,3" />
 
                 {/* Zone labels */}
-                {ZONE_ORDER.map((zone) => {
-                  const meta = ZONE_META[zone];
-                  return (
-                    <div
-                      key={zone}
-                      className="iso-zone-label absolute"
-                      style={{ left: `${meta.lx}%`, top: `${meta.ly}%` }}
-                    >
-                      <span className="font-pixel text-[4px] md:text-[5px] tracking-[0.15em] uppercase" style={{ color: meta.color, opacity: 0.6 }}>
-                        {meta.label}
-                      </span>
-                    </div>
-                  );
-                })}
-
-                {/* Zone dividers */}
-                <div className="absolute left-[33%] top-[5%] h-[90%] w-px bg-[#c4b8a8]/40" />
-                <div className="absolute left-[66%] top-[5%] h-[90%] w-px bg-[#c4b8a8]/40" />
-                <div className="absolute left-[5%] top-[48%] h-px w-[90%] bg-[#c4b8a8]/40" />
+                {ZONE_LABELS.map((z, i) => (
+                  <text key={i} x={z.x} y={z.y} textAnchor="middle" fill={z.color} opacity="0.5" fontSize="7" fontFamily="monospace" fontWeight="bold" letterSpacing="2">{z.text}</text>
+                ))}
 
                 {/* Meeting table */}
-                <div
-                  className="absolute"
-                  style={{ left: `${MEETING_POS.x}%`, top: `${MEETING_POS.y}%`, marginLeft: -20, marginTop: -20 }}
-                >
-                  <div className="iso-meeting-table" style={{ width: 40, height: 40 }} />
-                </div>
-
-                {/* Desks */}
-                {agentPositions.map(({ agent, x, y }) => (
-                  <FloorDesk
-                    key={`desk-${agent.id}`}
-                    x={x}
-                    y={y}
-                    hasMonitor
-                    screenColor={SCREEN_BG[agent.status]}
-                  />
-                ))}
+                <ellipse cx={MEETING.x} cy={MEETING.y} rx="25" ry="25" fill="#c4a882" stroke="#d4b892" strokeWidth="1" />
+                <ellipse cx={MEETING.x} cy={MEETING.y} rx="18" ry="18" fill="#b09070" opacity="0.3" />
 
                 {/* Plants */}
                 {[
-                  { x: 28, y: 30 }, { x: 68, y: 30 }, { x: 5, y: 48 },
-                  { x: 95, y: 48 }, { x: 28, y: 88 }, { x: 68, y: 88 },
+                  { x: 185, y: 130 }, { x: 415, y: 130 }, { x: 15, y: 225 },
+                  { x: 585, y: 225 }, { x: 185, y: 390 }, { x: 415, y: 390 },
                 ].map((pos, i) => (
-                  <div
-                    key={`plant-${i}`}
-                    className="iso-plant absolute"
-                    style={{ left: `${pos.x}%`, top: `${pos.y}%`, marginLeft: -6 }}
-                  >
-                    <div className="h-3 w-3 rounded-full bg-green-800/70" />
-                    <div className="mx-auto h-2 w-1.5 bg-amber-900/60" />
-                  </div>
+                  <g key={`plant-${i}`} transform={`translate(${pos.x}, ${pos.y})`}>
+                    <rect x="-2" y="2" width="4" height="5" rx="0.5" fill="#8a7050" />
+                    <circle cx="0" cy="-1" r="5" fill="#2a6a3a" opacity="0.8" />
+                    <circle cx="-2" cy="-4" r="3" fill="#3a8a4a" opacity="0.6" />
+                    <circle cx="2" cy="-3" r="3.5" fill="#2a7a3a" opacity="0.7" />
+                  </g>
                 ))}
 
-                {/* Agents */}
+                {/* Water cooler */}
+                <g transform="translate(585, 130)">
+                  <rect x="-3" y="-1" width="6" height="10" rx="1" fill="#ccc" stroke="#bbb" strokeWidth="0.5" />
+                  <rect x="-2" y="-6" width="4" height="5" rx="1" fill="#88ccff" opacity="0.4" />
+                </g>
+
+                {/* Desks */}
                 {agentPositions.map(({ agent, x, y }) => (
-                  <FloorAgent
-                    key={agent.id}
-                    agent={agent}
-                    x={x}
-                    y={y}
-                    inMeeting={meetingActive && simulating}
-                    onClick={() => setSelectedAgent(agent)}
-                  />
+                  <Desk key={`desk-${agent.id}`} x={x} y={y} screenColor={SCREEN_BG[agent.status]} />
                 ))}
-              </div>
+
+                {/* Agents (SVG animated with transform) */}
+                {agentPositions.map(({ agent, x, y }) => {
+                  const tx = meetingActive ? MEETING.x + (Math.random() - 0.5) * 40 : x;
+                  const ty = meetingActive ? MEETING.y + (Math.random() - 0.5) * 40 : y - 10;
+                  return (
+                    <PixelAgent
+                      key={agent.id}
+                      agent={agent}
+                      targetX={tx}
+                      targetY={ty}
+                      onClick={() => setSelectedAgent(agent)}
+                    />
+                  );
+                })}
+              </svg>
             </div>
           </div>
-
-          {/* Sim log (desktop only) */}
-          {simLog.length > 0 && (
-            <div className="hidden w-56 flex-shrink-0 overflow-y-auto rounded-lg border border-border bg-surface p-3 lg:block" style={{ maxHeight: 500 }}>
-              <h3 className="mb-2 font-mono text-xs font-bold text-text-primary">Sim Log</h3>
-              {simLog.map((line, i) => (
-                <p key={i} className="text-[0.65rem] leading-relaxed text-text-secondary">{line}</p>
-              ))}
-            </div>
-          )}
         </div>
+
+        {/* Sim log */}
+        {simLog.length > 0 && (
+          <div className="hidden w-52 flex-shrink-0 overflow-y-auto rounded-lg border border-border bg-surface p-3 lg:block" style={{ maxHeight: 450 }}>
+            <h3 className="mb-2 font-mono text-xs font-bold text-text-primary">Sim Log</h3>
+            {simLog.map((line, i) => (
+              <p key={i} className="text-[0.65rem] leading-relaxed text-text-secondary">{line}</p>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Bottom bar */}
+      {/* Bottom agent bar */}
       <div className="mt-4 flex items-center justify-center gap-1 overflow-x-auto rounded-lg border border-border bg-surface p-2">
         {displayAgents.map((agent) => (
           <button key={agent.id} onClick={() => setSelectedAgent(agent)}
