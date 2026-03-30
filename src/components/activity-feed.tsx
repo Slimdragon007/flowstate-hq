@@ -42,8 +42,16 @@ export function ActivityFeed({
   }, []);
 
   useEffect(() => {
-    const interval = setInterval(refresh, 10000);
-    return () => clearInterval(interval);
+    // Only poll when tab is visible
+    const guardedRefresh = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    const interval = setInterval(guardedRefresh, 10000);
+    document.addEventListener("visibilitychange", guardedRefresh);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", guardedRefresh);
+    };
   }, [refresh]);
 
   return (
