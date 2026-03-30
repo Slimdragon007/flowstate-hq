@@ -17,12 +17,13 @@ export async function getAgents(orgId: string) {
   return data;
 }
 
-/** Get a single agent with team info */
-export async function getAgent(agentId: string) {
+/** Get a single agent, scoped by org_id to prevent cross-tenant access */
+export async function getAgent(agentId: string, orgId: string) {
   const { data, error } = await getSupabase()
     .from("agents")
     .select("*")
     .eq("id", agentId)
+    .eq("org_id", orgId)
     .single();
   if (error) throw error;
   return data;
@@ -40,20 +41,22 @@ export async function getAgentsByZone(orgId: string, zone: string) {
   return data;
 }
 
-/** Set agent status (idle, working, done, error) */
+/** Set agent status (idle, working, done, error), scoped by org_id */
 export async function updateAgentStatus(
   agentId: string,
+  orgId: string,
   status: "idle" | "working" | "done" | "error"
 ) {
   const { error } = await getSupabase()
     .from("agents")
     .update({ status, updated_at: new Date().toISOString() })
-    .eq("id", agentId);
+    .eq("id", agentId)
+    .eq("org_id", orgId);
   if (error) throw error;
 }
 
-/** Store last_output and last_run_at */
-export async function saveAgentOutput(agentId: string, output: string) {
+/** Store last_output and last_run_at, scoped by org_id */
+export async function saveAgentOutput(agentId: string, orgId: string, output: string) {
   const { error } = await getSupabase()
     .from("agents")
     .update({
@@ -61,7 +64,8 @@ export async function saveAgentOutput(agentId: string, output: string) {
       last_run_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
-    .eq("id", agentId);
+    .eq("id", agentId)
+    .eq("org_id", orgId);
   if (error) throw error;
 }
 

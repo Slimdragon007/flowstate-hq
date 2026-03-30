@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 export const maxDuration = 60;
 import {
   getAgent,
+  getOrganization,
   updateAgentStatus,
   saveAgentOutput,
   logActivity,
@@ -17,8 +18,22 @@ export async function POST(
   const { id } = params;
 
   try {
-    // 1. Fetch agent from Supabase
-    const agent = await getAgent(id);
+    // 1. Parse request body for context and org_id
+    let context: string | undefined;
+    let bodyOrgId: string | undefined;
+    try {
+      const body = await request.json();
+      context = body.context;
+      bodyOrgId = body.org_id;
+    } catch {
+      // No body or invalid JSON, that's fine
+    }
+
+    // Resolve org_id (from body or default to flowstate org)
+    const orgId = bodyOrgId ?? (await getOrganization("flowstate")).id;
+
+    // 2. Fetch agent from Supabase, scoped by org
+    const agent = await getAgent(id, orgId);
     if (!agent) {
       return NextResponse.json(
         { success: false, error: "Agent not found" },
@@ -26,17 +41,8 @@ export async function POST(
       );
     }
 
-    // 2. Parse optional context from request body
-    let context: string | undefined;
-    try {
-      const body = await request.json();
-      context = body.context;
-    } catch {
-      // No body or invalid JSON, that's fine
-    }
-
     // 3. Set status to working
-    await updateAgentStatus(id, "working");
+    await updateAgentStatus(id, orgId, "working");
     await logActivity(
       agent.org_id,
       id,
@@ -50,8 +56,8 @@ export async function POST(
 
     if (result.success) {
       // 5a. Success: save output, set done, log, broadcast to comms
-      await saveAgentOutput(id, result.output);
-      await updateAgentStatus(id, "done");
+      await saveAgentOutput(id, orgId, result.output);
+      await updateAgentStatus(id, orgId, "done");
       await logActivity(
         agent.org_id,
         id,
@@ -68,7 +74,7 @@ export async function POST(
       );
     } else {
       // 5b. Error: set error status, log, alert to comms
-      await updateAgentStatus(id, "error");
+      await updateAgentStatus(id, orgId, "error");
       await logActivity(
         agent.org_id,
         id,

@@ -79,7 +79,7 @@ describe("Data Layer: agents.ts", () => {
 
   describe("getAgent", () => {
     it("returns a single agent by ID", async () => {
-      const agent = await getAgent(oracleId);
+      const agent = await getAgent(oracleId, orgId);
       expect(agent).toBeDefined();
       expect(agent.name).toBe("Chief of Staff");
       expect(agent.zone).toBe("executive");
@@ -87,7 +87,7 @@ describe("Data Layer: agents.ts", () => {
 
     it("rejects on invalid ID", async () => {
       await expect(
-        getAgent("00000000-0000-0000-0000-000000000000")
+        getAgent("00000000-0000-0000-0000-000000000000", orgId)
       ).rejects.toBeDefined();
     });
   });
@@ -121,20 +121,21 @@ describe("Data Layer: agents.ts", () => {
   describe("updateAgentStatus", () => {
     it("updates agent status and reverts", async () => {
       // Get current status
-      const before = await getAgent(oracleId);
+      const before = await getAgent(oracleId, orgId);
       const originalStatus = before.status;
 
       // Update to working
-      await updateAgentStatus(oracleId, "working");
-      const during = await getAgent(oracleId);
+      await updateAgentStatus(oracleId, orgId, "working");
+      const during = await getAgent(oracleId, orgId);
       expect(during.status).toBe("working");
 
       // Revert
       await updateAgentStatus(
         oracleId,
+        orgId,
         originalStatus as "idle" | "working" | "done" | "error"
       );
-      const after = await getAgent(oracleId);
+      const after = await getAgent(oracleId, orgId);
       expect(after.status).toBe(originalStatus);
     });
   });
@@ -142,9 +143,9 @@ describe("Data Layer: agents.ts", () => {
   describe("saveAgentOutput", () => {
     it("saves output and updates last_run_at", async () => {
       const testOutput = `Test output at ${new Date().toISOString()}`;
-      await saveAgentOutput(oracleId, testOutput);
+      await saveAgentOutput(oracleId, orgId, testOutput);
 
-      const agent = await getAgent(oracleId);
+      const agent = await getAgent(oracleId, orgId);
       expect(agent.last_output).toBe(testOutput);
       expect(agent.last_run_at).toBeTruthy();
     });
