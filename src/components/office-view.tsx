@@ -28,17 +28,6 @@ const DESK_POSITIONS: Record<string, { x: number; y: number }[]> = {
   security: [{ x: 470, y: 290 }, { x: 540, y: 290 }],
 };
 
-const MEETING = { x: 290, y: 195 };
-
-const ZONE_LABELS: { text: string; x: number; y: number; color: string }[] = [
-  { text: "EXECUTIVE", x: 80, y: 30, color: "#777" },
-  { text: "OPERATIONS", x: 270, y: 30, color: "#b08800" },
-  { text: "FINANCE", x: 505, y: 30, color: "#008844" },
-  { text: "MARKETING", x: 108, y: 260, color: "#cc4422" },
-  { text: "ENGINEERING", x: 278, y: 250, color: "#2266cc" },
-  { text: "SECURITY", x: 505, y: 260, color: "#7733aa" },
-];
-
 const ZONE_ORDER = ["executive", "operations", "finance", "marketing", "engineering", "security"];
 
 // Pixel person rendered as SVG rects
@@ -126,28 +115,6 @@ function PixelAgent({
   );
 }
 
-// Desk SVG element
-function Desk({ x, y, screenColor }: { x: number; y: number; screenColor: string }) {
-  return (
-    <g transform={`translate(${x}, ${y})`}>
-      {/* Desk surface */}
-      <rect x="-18" y="-2" width="36" height="14" rx="1" fill="#c4a882" stroke="#d4b892" strokeWidth="0.5" />
-      {/* Desk front */}
-      <rect x="-16" y="12" width="32" height="2" fill="#b09070" />
-      {/* Monitor */}
-      <rect x="-8" y="-14" width="16" height="11" rx="1" fill="#1a1a22" stroke="#333" strokeWidth="0.5" />
-      <rect x="-6" y="-12" width="12" height="7" rx="0.5" fill={screenColor} />
-      <rect x="-6" y="-12" width="12" height="7" rx="0.5" fill="none" stroke={screenColor === "#332800" ? "#ffcc00" : screenColor === "#0a2815" ? "#00cc66" : "#555"} strokeWidth="0.3" opacity="0.5" />
-      {/* Monitor stand */}
-      <rect x="-1.5" y="-3" width="3" height="2" fill="#2a2a30" />
-      {/* Keyboard */}
-      <rect x="-6" y="1" width="8" height="2" rx="0.5" fill="#2a2a30" />
-      {/* Chair (behind) */}
-      <ellipse cx="0" cy="20" rx="7" ry="3" fill="#2a2a38" />
-    </g>
-  );
-}
-
 export function OfficeView({ agents }: { agents: AgentData[] }) {
   const [selectedAgent, setSelectedAgent] = useState<AgentData | null>(null);
   const [simulating, setSimulating] = useState(false);
@@ -227,75 +194,115 @@ export function OfficeView({ agents }: { agents: AgentData[] }) {
         </button>
       </div>
 
-      {/* Isometric office: CSS tilt on container, SVG content inside */}
+      {/* Isometric office: pure SVG, no CSS 3D */}
       <div className="flex gap-4">
         <div className="flex-1 overflow-x-auto">
-          <div className="iso-scene mx-auto" style={{ width: "100%", maxWidth: 750, minHeight: 380 }}>
-            <div
-              className="iso-floor mx-auto"
-              style={{ width: 600, height: 440, position: "relative" }}
-            >
-              {/* All office content as a single SVG - no nested 3D transforms */}
+          <div className="mx-auto" style={{ maxWidth: 800 }}>
               <svg
-                viewBox="0 0 600 440"
-                width="600"
-                height="440"
-                style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+                viewBox="0 0 800 500"
+                className="w-full"
+                style={{ minWidth: 500, background: "#0a0a18", borderRadius: 12 }}
               >
-                {/* Zone divider lines */}
-                <line x1="200" y1="15" x2="200" y2="425" stroke="#b8a89040" strokeWidth="1" strokeDasharray="4,3" />
-                <line x1="400" y1="15" x2="400" y2="425" stroke="#b8a89040" strokeWidth="1" strokeDasharray="4,3" />
-                <line x1="15" y1="225" x2="585" y2="225" stroke="#b8a89040" strokeWidth="1" strokeDasharray="4,3" />
-
-                {/* Zone labels */}
-                {ZONE_LABELS.map((z, i) => (
-                  <text key={i} x={z.x} y={z.y} textAnchor="middle" fill={z.color} opacity="0.5" fontSize="7" fontFamily="monospace" fontWeight="bold" letterSpacing="2">{z.text}</text>
-                ))}
-
-                {/* Meeting table */}
-                <ellipse cx={MEETING.x} cy={MEETING.y} rx="25" ry="25" fill="#c4a882" stroke="#d4b892" strokeWidth="1" />
-                <ellipse cx={MEETING.x} cy={MEETING.y} rx="18" ry="18" fill="#b09070" opacity="0.3" />
-
-                {/* Plants */}
-                {[
-                  { x: 185, y: 130 }, { x: 415, y: 130 }, { x: 15, y: 225 },
-                  { x: 585, y: 225 }, { x: 185, y: 390 }, { x: 415, y: 390 },
-                ].map((pos, i) => (
-                  <g key={`plant-${i}`} transform={`translate(${pos.x}, ${pos.y})`}>
-                    <rect x="-2" y="2" width="4" height="5" rx="0.5" fill="#8a7050" />
-                    <circle cx="0" cy="-1" r="5" fill="#2a6a3a" opacity="0.8" />
-                    <circle cx="-2" cy="-4" r="3" fill="#3a8a4a" opacity="0.6" />
-                    <circle cx="2" cy="-3" r="3.5" fill="#2a7a3a" opacity="0.7" />
-                  </g>
-                ))}
-
-                {/* Water cooler */}
-                <g transform="translate(585, 130)">
-                  <rect x="-3" y="-1" width="6" height="10" rx="1" fill="#ccc" stroke="#bbb" strokeWidth="0.5" />
-                  <rect x="-2" y="-6" width="4" height="5" rx="1" fill="#88ccff" opacity="0.4" />
+                {/* Isometric floor (diamond shape) */}
+                <g transform="translate(400, 60)">
+                  {/* Floor surface */}
+                  <polygon
+                    points="0,0 350,175 0,350 -350,175"
+                    fill="#ddd2c2"
+                    stroke="#c4b8a8"
+                    strokeWidth="2"
+                  />
+                  {/* Checkerboard pattern */}
+                  <defs>
+                    <pattern id="isoTile" width="50" height="50" patternUnits="userSpaceOnUse" patternTransform="skewY(26.57) scale(1, 0.5)">
+                      <rect width="25" height="25" fill="#ddd2c2" />
+                      <rect x="25" width="25" height="25" fill="#d6cab8" />
+                      <rect y="25" width="25" height="25" fill="#d6cab8" />
+                      <rect x="25" y="25" width="25" height="25" fill="#ddd2c2" />
+                    </pattern>
+                  </defs>
+                  <polygon
+                    points="0,0 350,175 0,350 -350,175"
+                    fill="url(#isoTile)"
+                    opacity="0.3"
+                  />
+                  {/* Left wall */}
+                  <polygon
+                    points="-350,175 0,350 0,365 -350,190"
+                    fill="#b0a090"
+                  />
+                  {/* Right wall */}
+                  <polygon
+                    points="0,350 350,175 350,190 0,365"
+                    fill="#a09080"
+                  />
                 </g>
 
-                {/* Desks */}
-                {agentPositions.map(({ agent, x, y }) => (
-                  <Desk key={`desk-${agent.id}`} x={x} y={y} screenColor={SCREEN_BG[agent.status]} />
-                ))}
+                {/* Content on the isometric floor */}
+                {/* iso() maps grid x,y (0-100) to diamond coords */}
+                <g transform="translate(400, 60)">
 
-                {/* Agents (SVG animated with transform) */}
-                {agentPositions.map(({ agent, x, y }) => {
-                  const tx = meetingActive ? MEETING.x + (Math.random() - 0.5) * 40 : x;
-                  const ty = meetingActive ? MEETING.y + (Math.random() - 0.5) * 40 : y - 10;
-                  return (
-                    <PixelAgent
-                      key={agent.id}
-                      agent={agent}
-                      targetX={tx}
-                      targetY={ty}
-                      onClick={() => setSelectedAgent(agent)}
-                    />
-                  );
-                })}
+                  {/* Zone dividers (isometric lines) */}
+                  <line x1="0" y1="0" x2="0" y2="350" stroke="#b8a890" strokeWidth="0.5" opacity="0.3" strokeDasharray="4,3" />
+                  <line x1="-350" y1="175" x2="350" y2="175" stroke="#b8a890" strokeWidth="0.5" opacity="0.3" strokeDasharray="4,3" />
+
+                  {/* Zone labels */}
+                  <text x="-180" y="70" textAnchor="middle" fill="#777" opacity="0.6" fontSize="8" fontFamily="monospace" fontWeight="bold" letterSpacing="2">EXECUTIVE</text>
+                  <text x="0" y="50" textAnchor="middle" fill="#b08800" opacity="0.6" fontSize="8" fontFamily="monospace" fontWeight="bold" letterSpacing="2">OPERATIONS</text>
+                  <text x="180" y="70" textAnchor="middle" fill="#008844" opacity="0.6" fontSize="8" fontFamily="monospace" fontWeight="bold" letterSpacing="2">FINANCE</text>
+                  <text x="-180" y="210" textAnchor="middle" fill="#cc4422" opacity="0.6" fontSize="8" fontFamily="monospace" fontWeight="bold" letterSpacing="2">MARKETING</text>
+                  <text x="0" y="200" textAnchor="middle" fill="#2266cc" opacity="0.6" fontSize="8" fontFamily="monospace" fontWeight="bold" letterSpacing="2">ENGINEERING</text>
+                  <text x="180" y="210" textAnchor="middle" fill="#7733aa" opacity="0.6" fontSize="8" fontFamily="monospace" fontWeight="bold" letterSpacing="2">SECURITY</text>
+
+                  {/* Meeting table (center) */}
+                  <ellipse cx="0" cy="175" rx="22" ry="12" fill="#c4a882" stroke="#d4b892" strokeWidth="1" />
+
+                  {/* Plants */}
+                  {[[-280, 100], [280, 100], [-280, 250], [280, 250], [-100, 330], [100, 330]].map(([px, py], i) => (
+                    <g key={`p${i}`} transform={`translate(${px},${py})`}>
+                      <rect x="-2" y="1" width="4" height="4" fill="#8a7050" />
+                      <circle cx="0" cy="-2" r="5" fill="#2a6a3a" opacity="0.8" />
+                      <circle cx="-2" cy="-5" r="3" fill="#3a8a4a" opacity="0.6" />
+                    </g>
+                  ))}
+
+                  {/* Desks + Agents positioned on the diamond */}
+                  {agentPositions.map(({ agent, x: gx, y: gy }, idx) => {
+                    // Map grid coords to isometric diamond
+                    // gx: 0-600 -> -300 to 300, gy: 0-440 -> 0 to 350
+                    const ix = (gx - 300) * 0.95;
+                    const iy = (gy / 440) * 350;
+
+                    // Deterministic spread around meeting table (no Math.random)
+                    const angle = (idx / agentPositions.length) * 2 * Math.PI;
+                    const tx = meetingActive ? Math.cos(angle) * 35 : ix;
+                    const ty = meetingActive ? 175 + Math.sin(angle) * 20 : iy;
+
+                    return (
+                      <g key={agent.id}>
+                        {/* Desk */}
+                        {!meetingActive && (
+                          <g transform={`translate(${ix}, ${iy})`}>
+                            <rect x="-14" y="-2" width="28" height="10" rx="1" fill="#c4a882" stroke="#d4b892" strokeWidth="0.5" />
+                            <rect x="-6" y="-12" width="12" height="9" rx="1" fill="#1a1a22" stroke="#333" strokeWidth="0.5" />
+                            <rect x="-4" y="-10" width="8" height="5" fill={SCREEN_BG[agent.status]} />
+                          </g>
+                        )}
+                        {/* Agent */}
+                        <PixelAgent
+                          agent={agent}
+                          targetX={tx}
+                          targetY={ty - 8}
+                          onClick={() => setSelectedAgent(agent)}
+                        />
+                      </g>
+                    );
+                  })}
+                </g>
+
+                {/* Title */}
+                <text x="400" y="485" textAnchor="middle" fill="#ffffff" opacity="0.08" fontSize="7" fontFamily="monospace" letterSpacing="4">FLOWSTATE HEADQUARTERS</text>
               </svg>
-            </div>
           </div>
         </div>
 
