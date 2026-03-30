@@ -17,9 +17,14 @@ import {
   logActivity,
   sendAgentMessage,
 } from "@/lib/agents";
+import { createAdminClient } from "@/lib/supabase";
+
+const TEST_PREFIX = "test-";
 
 let orgId: string;
 let oracleId: string;
+let originalOutput: string | null;
+let originalLastRunAt: string | null;
 
 describe("Data Layer: agents.ts", () => {
   // Get org and oracle ID once for all tests
@@ -30,7 +35,40 @@ describe("Data Layer: agents.ts", () => {
     const agents = await getAgents(orgId);
     const chief = agents.find((a) => a.name === "Chief of Staff");
     if (!chief) throw new Error("Chief of Staff agent not found in test setup");
-    oracleId = chief.id; // reusing variable name for convenience
+    oracleId = chief.id;
+
+    // Snapshot agent state for restoration
+    originalOutput = chief.last_output;
+    originalLastRunAt = chief.last_run_at;
+  });
+
+  // Clean up all test artifacts from production tables
+  afterAll(async () => {
+    const supabase = createAdminClient();
+
+    // Delete test activity log entries (action starts with TEST_PREFIX)
+    await supabase
+      .from("activity_log")
+      .delete()
+      .eq("org_id", orgId)
+      .like("action", `${TEST_PREFIX}%`);
+
+    // Delete test agent messages (message starts with "test-msg-")
+    await supabase
+      .from("agent_messages")
+      .delete()
+      .eq("org_id", orgId)
+      .like("message", "test-msg-%");
+
+    // Restore agent's original output
+    await supabase
+      .from("agents")
+      .update({
+        last_output: originalOutput,
+        last_run_at: originalLastRunAt,
+      })
+      .eq("id", oracleId)
+      .eq("org_id", orgId);
   });
 
   describe("getOrganization", () => {
@@ -153,7 +191,7 @@ describe("Data Layer: agents.ts", () => {
 
   describe("logActivity", () => {
     it("creates an activity log entry", async () => {
-      const action = `test-${Date.now()}`;
+      const action = `${TEST_PREFIX}${Date.now()}`;
       await logActivity(orgId, oracleId, action, "Test detail", "core");
 
       const log = await getActivityLog(orgId, 5);
