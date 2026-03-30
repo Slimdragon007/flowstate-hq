@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StatusBadge } from "./status-badge";
 
 export interface AgentData {
@@ -36,6 +36,11 @@ export function AgentCard({
 }) {
   const [agent, setAgent] = useState(initialAgent);
   const [running, setRunning] = useState(false);
+
+  // Sync with parent data when not actively running
+  useEffect(() => {
+    if (!running) setAgent(initialAgent);
+  }, [initialAgent, running]);
 
   async function handleRun(e: React.MouseEvent) {
     e.stopPropagation();
