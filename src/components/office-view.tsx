@@ -172,51 +172,7 @@ function FloorDesk({ x, y, hasMonitor, screenColor }: { x: number; y: number; ha
 // Zone labels
 const ZONE_ORDER = ["executive", "operations", "finance", "marketing", "engineering", "security"];
 
-// Mobile fallback card (reused from previous version)
-function MobileZoneCard({
-  name,
-  icon,
-  color,
-  agents,
-  onSelectAgent,
-}: {
-  name: string;
-  icon: string;
-  color: string;
-  agents: AgentData[];
-  onSelectAgent: (a: AgentData) => void;
-}) {
-  return (
-    <div className="rounded-xl border p-3" style={{ background: "#e8ddd0", borderColor: "#c4b8a8" }}>
-      <div className="mb-2 flex items-center gap-2">
-        <span>{icon}</span>
-        <span className="font-pixel text-[0.4rem] uppercase tracking-wider" style={{ color }}>{name}</span>
-        <span className="ml-auto rounded-full bg-white/40 px-1.5 py-0.5 text-[0.5rem]" style={{ color }}>{agents.length}</span>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {agents.map((a) => (
-          <button
-            key={a.id}
-            onClick={() => onSelectAgent(a)}
-            className="flex items-center gap-1 rounded-md bg-white/30 px-2 py-1 text-[0.6rem]"
-          >
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: STATUS_COLOR[a.status] }} />
-            <span style={{ color }}>{a.emoji} {a.name}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-const MOBILE_ZONE_META: Record<string, { icon: string; color: string }> = {
-  executive: { icon: "👔", color: "#555" },
-  operations: { icon: "⚙️", color: "#b08800" },
-  finance: { icon: "💰", color: "#008844" },
-  marketing: { icon: "📢", color: "#cc4422" },
-  engineering: { icon: "🔧", color: "#2266cc" },
-  security: { icon: "🛡️", color: "#7733aa" },
-};
+// Mobile uses the same isometric view with horizontal scroll
 
 export function OfficeView({ agents }: { agents: AgentData[] }) {
   const [selectedAgent, setSelectedAgent] = useState<AgentData | null>(null);
@@ -300,108 +256,93 @@ export function OfficeView({ agents }: { agents: AgentData[] }) {
         </button>
       </div>
 
-      {/* Desktop: isometric view */}
-      <div className="hidden md:flex gap-4">
-        <div className="flex-1 flex items-center justify-center py-8" style={{ minHeight: 500 }}>
-          <div className="iso-scene" style={{ width: 700, height: 450 }}>
-            <div className="iso-floor" style={{ width: 550, height: 400, margin: "40px auto" }}>
+      {/* Isometric office - works on all screens */}
+      <div className="overflow-x-auto">
+        <div className="flex gap-4" style={{ minWidth: 600 }}>
+          <div className="flex-1 flex items-center justify-center py-4 md:py-8">
+            <div className="iso-scene w-full" style={{ maxWidth: 700, minHeight: 350 }}>
+              <div className="iso-floor mx-auto" style={{ width: "min(550px, 85vw)", height: "min(400px, 65vw)", minWidth: 320, minHeight: 240 }}>
 
-              {/* Zone labels */}
-              {ZONE_ORDER.map((zone) => {
-                const meta = ZONE_META[zone];
-                return (
-                  <div
-                    key={zone}
-                    className="iso-zone-label absolute"
-                    style={{ left: `${meta.lx}%`, top: `${meta.ly}%` }}
-                  >
-                    <span className="font-pixel text-[5px] tracking-[0.15em] uppercase" style={{ color: meta.color, opacity: 0.6 }}>
-                      {meta.label}
-                    </span>
-                  </div>
-                );
-              })}
+                {/* Zone labels */}
+                {ZONE_ORDER.map((zone) => {
+                  const meta = ZONE_META[zone];
+                  return (
+                    <div
+                      key={zone}
+                      className="iso-zone-label absolute"
+                      style={{ left: `${meta.lx}%`, top: `${meta.ly}%` }}
+                    >
+                      <span className="font-pixel text-[4px] md:text-[5px] tracking-[0.15em] uppercase" style={{ color: meta.color, opacity: 0.6 }}>
+                        {meta.label}
+                      </span>
+                    </div>
+                  );
+                })}
 
-              {/* Zone dividers */}
-              <div className="absolute left-[33%] top-[5%] h-[90%] w-px bg-[#c4b8a8]/40" />
-              <div className="absolute left-[66%] top-[5%] h-[90%] w-px bg-[#c4b8a8]/40" />
-              <div className="absolute left-[5%] top-[48%] h-px w-[90%] bg-[#c4b8a8]/40" />
+                {/* Zone dividers */}
+                <div className="absolute left-[33%] top-[5%] h-[90%] w-px bg-[#c4b8a8]/40" />
+                <div className="absolute left-[66%] top-[5%] h-[90%] w-px bg-[#c4b8a8]/40" />
+                <div className="absolute left-[5%] top-[48%] h-px w-[90%] bg-[#c4b8a8]/40" />
 
-              {/* Meeting table */}
-              <div
-                className="absolute"
-                style={{ left: `${MEETING_POS.x}%`, top: `${MEETING_POS.y}%`, marginLeft: -30, marginTop: -30 }}
-              >
-                <div className="iso-meeting-table" />
-              </div>
-
-              {/* Desks */}
-              {agentPositions.map(({ agent, x, y }) => (
-                <FloorDesk
-                  key={`desk-${agent.id}`}
-                  x={x}
-                  y={y}
-                  hasMonitor
-                  screenColor={SCREEN_BG[agent.status]}
-                />
-              ))}
-
-              {/* Plants */}
-              {[
-                { x: 28, y: 30 }, { x: 68, y: 30 }, { x: 5, y: 48 },
-                { x: 95, y: 48 }, { x: 28, y: 88 }, { x: 68, y: 88 },
-              ].map((pos, i) => (
+                {/* Meeting table */}
                 <div
-                  key={`plant-${i}`}
-                  className="iso-plant absolute"
-                  style={{ left: `${pos.x}%`, top: `${pos.y}%`, marginLeft: -6 }}
+                  className="absolute"
+                  style={{ left: `${MEETING_POS.x}%`, top: `${MEETING_POS.y}%`, marginLeft: -20, marginTop: -20 }}
                 >
-                  <div className="h-3 w-3 rounded-full bg-green-800/70" />
-                  <div className="mx-auto h-2 w-1.5 bg-amber-900/60" />
+                  <div className="iso-meeting-table" style={{ width: 40, height: 40 }} />
                 </div>
-              ))}
 
-              {/* Agents */}
-              {agentPositions.map(({ agent, x, y }) => (
-                <FloorAgent
-                  key={agent.id}
-                  agent={agent}
-                  x={x}
-                  y={y}
-                  inMeeting={meetingActive && simulating}
-                  onClick={() => setSelectedAgent(agent)}
-                />
-              ))}
+                {/* Desks */}
+                {agentPositions.map(({ agent, x, y }) => (
+                  <FloorDesk
+                    key={`desk-${agent.id}`}
+                    x={x}
+                    y={y}
+                    hasMonitor
+                    screenColor={SCREEN_BG[agent.status]}
+                  />
+                ))}
+
+                {/* Plants */}
+                {[
+                  { x: 28, y: 30 }, { x: 68, y: 30 }, { x: 5, y: 48 },
+                  { x: 95, y: 48 }, { x: 28, y: 88 }, { x: 68, y: 88 },
+                ].map((pos, i) => (
+                  <div
+                    key={`plant-${i}`}
+                    className="iso-plant absolute"
+                    style={{ left: `${pos.x}%`, top: `${pos.y}%`, marginLeft: -6 }}
+                  >
+                    <div className="h-3 w-3 rounded-full bg-green-800/70" />
+                    <div className="mx-auto h-2 w-1.5 bg-amber-900/60" />
+                  </div>
+                ))}
+
+                {/* Agents */}
+                {agentPositions.map(({ agent, x, y }) => (
+                  <FloorAgent
+                    key={agent.id}
+                    agent={agent}
+                    x={x}
+                    y={y}
+                    inMeeting={meetingActive && simulating}
+                    onClick={() => setSelectedAgent(agent)}
+                  />
+                ))}
+              </div>
             </div>
           </div>
+
+          {/* Sim log (desktop only) */}
+          {simLog.length > 0 && (
+            <div className="hidden w-56 flex-shrink-0 overflow-y-auto rounded-lg border border-border bg-surface p-3 lg:block" style={{ maxHeight: 500 }}>
+              <h3 className="mb-2 font-mono text-xs font-bold text-text-primary">Sim Log</h3>
+              {simLog.map((line, i) => (
+                <p key={i} className="text-[0.65rem] leading-relaxed text-text-secondary">{line}</p>
+              ))}
+            </div>
+          )}
         </div>
-
-        {/* Sim log */}
-        {simLog.length > 0 && (
-          <div className="w-56 flex-shrink-0 overflow-y-auto rounded-lg border border-border bg-surface p-3" style={{ maxHeight: 500 }}>
-            <h3 className="mb-2 font-mono text-xs font-bold text-text-primary">Sim Log</h3>
-            {simLog.map((line, i) => (
-              <p key={i} className="text-[0.65rem] leading-relaxed text-text-secondary">{line}</p>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Mobile: zone card grid */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:hidden">
-        {ZONE_ORDER.map((zone) => {
-          const meta = MOBILE_ZONE_META[zone];
-          return (
-            <MobileZoneCard
-              key={zone}
-              name={zone}
-              icon={meta.icon}
-              color={meta.color}
-              agents={agentsByZone[zone]}
-              onSelectAgent={setSelectedAgent}
-            />
-          );
-        })}
       </div>
 
       {/* Bottom bar */}
