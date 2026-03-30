@@ -45,54 +45,31 @@ export async function POST(
       );
     }
 
-    // 3. Set status to working
-    await updateAgentStatus(id, orgId, "working");
-    await logActivity(
-      agent.org_id,
-      id,
-      `${agent.name} started`,
-      "Agent execution began",
-      agent.zone
-    );
+    // 3. Set status to working (parallel: independent writes)
+    const oid = agent.org_id;
+    await Promise.all([
+      updateAgentStatus(id, oid, "working"),
+      logActivity(oid, id, `${agent.name} started`, "Agent execution began", agent.zone),
+    ]);
 
     // 4. Call Anthropic
     const result = await callAgent(agent, context);
 
     if (result.success) {
-      // 5a. Success: save output, set done, log, broadcast to comms
-      await saveAgentOutput(id, orgId, result.output);
-      await updateAgentStatus(id, orgId, "done");
-      await logActivity(
-        agent.org_id,
-        id,
-        `${agent.name} completed`,
-        result.output.substring(0, 500),
-        agent.zone
-      );
-      await sendAgentMessage(
-        agent.org_id,
-        id,
-        null,
-        "status_update",
-        `${agent.name} completed run. Output: ${result.output.substring(0, 200)}...`
-      );
+      // 5a. Success: save output, set done, log, broadcast
+      await Promise.all([
+        saveAgentOutput(id, oid, result.output),
+        updateAgentStatus(id, oid, "done"),
+        logActivity(oid, id, `${agent.name} completed`, result.output.substring(0, 500), agent.zone),
+        sendAgentMessage(oid, id, null, "status_update", `${agent.name} completed run. Output: ${result.output.substring(0, 200)}...`),
+      ]);
     } else {
-      // 5b. Error: set error status, log, alert to comms
-      await updateAgentStatus(id, orgId, "error");
-      await logActivity(
-        agent.org_id,
-        id,
-        `${agent.name} failed`,
-        result.error ?? "Unknown error",
-        agent.zone
-      );
-      await sendAgentMessage(
-        agent.org_id,
-        id,
-        null,
-        "alert",
-        `${agent.name} failed: ${result.error ?? "Unknown error"}`
-      );
+      // 5b. Error: set error status, log, alert
+      await Promise.all([
+        updateAgentStatus(id, oid, "error"),
+        logActivity(oid, id, `${agent.name} failed`, result.error ?? "Unknown error", agent.zone),
+        sendAgentMessage(oid, id, null, "alert", `${agent.name} failed: ${result.error ?? "Unknown error"}`),
+      ]);
     }
 
     return NextResponse.json({
