@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export const maxDuration = 300;
 import {
@@ -10,8 +10,12 @@ import {
   sendAgentMessage,
 } from "@/lib/agents";
 import { callAgent } from "@/lib/anthropic";
+import { requireAuth } from "@/lib/auth";
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const authError = requireAuth(request);
+  if (authError) return authError;
+
   try {
     // 1. Get FlowstateAI org
     const org = await getOrganization("flowstate");

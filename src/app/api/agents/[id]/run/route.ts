@@ -10,11 +10,15 @@ import {
   sendAgentMessage,
 } from "@/lib/agents";
 import { callAgent } from "@/lib/anthropic";
+import { requireAuth } from "@/lib/auth";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const authError = requireAuth(request);
+  if (authError) return authError;
+
   const { id } = params;
 
   try {
