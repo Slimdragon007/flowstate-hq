@@ -1,10 +1,14 @@
 import { createAdminClient } from "./supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-const supabase = createAdminClient();
+let _supabase: SupabaseClient;
+function getSupabase() {
+  return (_supabase ??= createAdminClient());
+}
 
 /** Get all agents for an org, ordered by display_order */
 export async function getAgents(orgId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("agents")
     .select("*")
     .eq("org_id", orgId)
@@ -15,7 +19,7 @@ export async function getAgents(orgId: string) {
 
 /** Get a single agent with team info */
 export async function getAgent(agentId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("agents")
     .select("*")
     .eq("id", agentId)
@@ -26,7 +30,7 @@ export async function getAgent(agentId: string) {
 
 /** Get agents filtered by zone */
 export async function getAgentsByZone(orgId: string, zone: string) {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("agents")
     .select("*")
     .eq("org_id", orgId)
@@ -41,7 +45,7 @@ export async function updateAgentStatus(
   agentId: string,
   status: "idle" | "working" | "done" | "error"
 ) {
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from("agents")
     .update({ status, updated_at: new Date().toISOString() })
     .eq("id", agentId);
@@ -50,7 +54,7 @@ export async function updateAgentStatus(
 
 /** Store last_output and last_run_at */
 export async function saveAgentOutput(agentId: string, output: string) {
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from("agents")
     .update({
       last_output: output,
@@ -69,7 +73,7 @@ export async function logActivity(
   detail: string,
   zone: string
 ) {
-  const { error } = await supabase.from("activity_log").insert({
+  const { error } = await getSupabase().from("activity_log").insert({
     org_id: orgId,
     agent_id: agentId,
     action,
@@ -81,7 +85,7 @@ export async function logActivity(
 
 /** Get recent activity, newest first */
 export async function getActivityLog(orgId: string, limit: number = 50) {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("activity_log")
     .select("*, agents(name, emoji)")
     .eq("org_id", orgId)
@@ -93,7 +97,7 @@ export async function getActivityLog(orgId: string, limit: number = 50) {
 
 /** Get org by slug */
 export async function getOrganization(slug: string) {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("organizations")
     .select("*")
     .eq("slug", slug)
@@ -104,7 +108,7 @@ export async function getOrganization(slug: string) {
 
 /** Get teams with member counts */
 export async function getTeams(orgId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("teams")
     .select("*, agent_team_members(agent_id)")
     .eq("org_id", orgId);
@@ -117,7 +121,7 @@ export async function getTeams(orgId: string) {
 
 /** Get recent agent messages */
 export async function getAgentMessages(orgId: string, limit: number = 50) {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("agent_messages")
     .select(
       "*, from_agent:agents!agent_messages_from_agent_id_fkey(name, emoji, color), to_agent:agents!agent_messages_to_agent_id_fkey(name, emoji)"
@@ -138,7 +142,7 @@ export async function sendAgentMessage(
   message: string,
   metadata?: Record<string, unknown>
 ) {
-  const { error } = await supabase.from("agent_messages").insert({
+  const { error } = await getSupabase().from("agent_messages").insert({
     org_id: orgId,
     from_agent_id: fromAgentId,
     to_agent_id: toAgentId,
