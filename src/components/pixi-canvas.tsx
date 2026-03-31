@@ -289,15 +289,17 @@ function drawPixelAgent(
   dot.fill({ color: statusColor });
   container.addChild(dot);
 
+  const tickers: import("pixi.js").Ticker[] = [];
+
   if (isWorking) {
     let elapsed = 0;
-    const ticker = new PIXI.Ticker();
-    ticker.add((delta) => {
+    const pulseTicker = new PIXI.Ticker();
+    pulseTicker.add((delta) => {
       elapsed += delta.deltaTime * 0.05;
       dot.alpha = 0.3 + Math.sin(elapsed * Math.PI * 2) * 0.7;
     });
-    ticker.start();
-    container.on("destroyed", () => ticker.destroy());
+    pulseTicker.start();
+    tickers.push(pulseTicker);
   }
 
   const nameLabel = new PIXI.Text({
@@ -352,19 +354,20 @@ function drawPixelAgent(
         if (fadeIn >= 1) fadeTicker.stop();
       });
       fadeTicker.start();
-      container.on("destroyed", () => fadeTicker.destroy());
+      tickers.push(fadeTicker);
     }
 
     container.addChild(bubbleGroup);
   }
 
-  return container;
+  return { container, tickers };
 }
 
 // Track sprite + positions for animation
 interface AgentSprite {
   sprite: import("pixi.js").Container;
   desk: import("pixi.js").Graphics;
+  tickers: import("pixi.js").Ticker[];
   deskX: number;
   deskY: number;
   meetingX: number;
@@ -465,7 +468,7 @@ export function PixiCanvas({ agents, meetingActive = false, onSelectAgent }: Pix
           const desk = drawDesk(PIXI, ax, ay, SCREEN_BG[agent.status] ?? 0x1a2a3a);
           agentLayer.addChild(desk);
 
-          const sprite = drawPixelAgent(PIXI, agent, ax, ay - 8, () => handleAgentClick(agent));
+          const { container: sprite, tickers } = drawPixelAgent(PIXI, agent, ax, ay - 8, () => handleAgentClick(agent));
           agentLayer.addChild(sprite);
 
           // Calculate meeting position (spread around table)
@@ -477,6 +480,7 @@ export function PixiCanvas({ agents, meetingActive = false, onSelectAgent }: Pix
           sprites.push({
             sprite,
             desk,
+            tickers,
             deskX: ax,
             deskY: ay - 8,
             meetingX,
@@ -520,6 +524,13 @@ export function PixiCanvas({ agents, meetingActive = false, onSelectAgent }: Pix
 
     return () => {
       destroyed = true;
+      // Destroy all agent tickers explicitly to prevent memory leaks
+      for (const s of spritesRef.current) {
+        for (const t of s.tickers) {
+          t.stop();
+          t.destroy();
+        }
+      }
       spritesRef.current = [];
       if (appRef.current) {
         appRef.current.destroy(true, { children: true });
@@ -527,7 +538,8 @@ export function PixiCanvas({ agents, meetingActive = false, onSelectAgent }: Pix
       }
       setReady(false);
     };
-  }, [agents, handleAgentClick]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handleAgentClick]);
 
   return (
     <div

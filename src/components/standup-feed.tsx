@@ -114,7 +114,7 @@ export function StandupFeed({ agents, active }: { agents: AgentData[]; active: b
     .map((a) => ({
       id: a.id,
       agent: a,
-      timestamp: a.last_run_at ? new Date(a.last_run_at).getTime() : Date.now(),
+      timestamp: a.last_run_at ? new Date(a.last_run_at).getTime() : 0,
     }))
     .sort((a, b) => a.timestamp - b.timestamp);
 
