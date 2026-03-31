@@ -188,6 +188,23 @@ function drawDesk(
   return desk;
 }
 
+// Sprite texture map: agent name -> path to PNG
+const SPRITE_MAP: Record<string, string> = {
+  "Chief of Staff": "/sprites/chief-of-staff-idle.png",
+};
+
+async function loadSpriteTextures(PIXI: typeof import("pixi.js")) {
+  const textures: Record<string, import("pixi.js").Texture> = {};
+  for (const [name, path] of Object.entries(SPRITE_MAP)) {
+    try {
+      textures[name] = await PIXI.Assets.load(path);
+    } catch {
+      // Sprite not available, will fall back to Graphics
+    }
+  }
+  return textures;
+}
+
 function getBubbleText(agent: AgentData): string | null {
   if (agent.status === "working") return "working...";
   if (agent.status === "error") return "error!";
@@ -211,6 +228,7 @@ function drawPixelAgent(
   x: number,
   y: number,
   onClick: () => void,
+  texture?: import("pixi.js").Texture,
 ) {
   const container = new PIXI.Container();
   container.x = x;
@@ -220,14 +238,23 @@ function drawPixelAgent(
   container.on("pointertap", onClick);
 
   const p = 2.5;
-  const skin = 0xe8c8a0;
-  const agentColor = parseInt(agent.color.replace("#", ""), 16);
-  const hair = agent.color === "#ffffff" ? 0x555555 : agentColor;
-  const pants = 0x334455;
   const statusColor = STATUS_COLORS[agent.status] ?? 0x888888;
   const isWorking = agent.status === "working";
 
-  const g = new PIXI.Graphics();
+  // Use Figma-designed sprite if available
+  if (texture) {
+    const sprite = new PIXI.Sprite(texture);
+    sprite.anchor.set(0.5, 0.75);
+    sprite.scale.set(0.4); // Scale down from 64x96 to fit desk area
+    container.addChild(sprite);
+  } else {
+    // Fallback: code-drawn pixel agent
+    const skin = 0xe8c8a0;
+    const agentColor = parseInt(agent.color.replace("#", ""), 16);
+    const hair = agent.color === "#ffffff" ? 0x555555 : agentColor;
+    const pants = 0x334455;
+
+    const g = new PIXI.Graphics();
 
   g.ellipse(0, 4 * p, 3 * p, p);
   g.fill({ color: 0x000000, alpha: 0.12 });
@@ -283,6 +310,7 @@ function drawPixelAgent(
   g.fill({ color: 0x222222 });
 
   container.addChild(g);
+  } // end fallback Graphics
 
   const dot = new PIXI.Graphics();
   dot.circle(4 * p, -8 * p, p);
@@ -447,6 +475,9 @@ export function PixiCanvas({ agents, meetingActive = false, onSelectAgent }: Pix
       const { floor, cx, cy, dw, dh } = buildFloor(PIXI, sw, sh);
       app.stage.addChild(floor);
 
+      // Load Figma-designed sprite textures
+      const textures = await loadSpriteTextures(PIXI);
+
       // Place agents at desks and track sprites
       const currentAgents = agentsRef.current;
       const agentLayer = new PIXI.Container();
@@ -468,7 +499,8 @@ export function PixiCanvas({ agents, meetingActive = false, onSelectAgent }: Pix
           const desk = drawDesk(PIXI, ax, ay, SCREEN_BG[agent.status] ?? 0x1a2a3a);
           agentLayer.addChild(desk);
 
-          const { container: sprite, tickers } = drawPixelAgent(PIXI, agent, ax, ay - 8, () => handleAgentClick(agent));
+          const agentTexture = textures[agent.name];
+          const { container: sprite, tickers } = drawPixelAgent(PIXI, agent, ax, ay - 8, () => handleAgentClick(agent), agentTexture);
           agentLayer.addChild(sprite);
 
           // Calculate meeting position (spread around table)
