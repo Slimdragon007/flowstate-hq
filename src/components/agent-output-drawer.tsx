@@ -27,6 +27,62 @@ function timeAgo(dateStr: string | null): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
+interface ScrumStatus {
+  done: string;
+  doing: string;
+  blocked: string;
+  summary: string;
+}
+
+function parseScrumOutput(output: string): ScrumStatus | null {
+  try {
+    const parsed = JSON.parse(output);
+    if (parsed.done && parsed.doing && parsed.blocked && parsed.summary) {
+      return parsed as ScrumStatus;
+    }
+  } catch {
+    // Not JSON, that's fine
+  }
+  return null;
+}
+
+const SCRUM_FIELDS: { key: keyof ScrumStatus; label: string; color: string }[] = [
+  { key: "done", label: "DONE", color: "text-green" },
+  { key: "doing", label: "DOING", color: "text-amber" },
+  { key: "blocked", label: "BLOCKED", color: "text-red" },
+  { key: "summary", label: "SUMMARY", color: "text-text-primary" },
+];
+
+function ScrumOutput({ output }: { output: string }) {
+  const scrum = parseScrumOutput(output);
+
+  if (!scrum) {
+    return (
+      <div className="rounded-lg border border-border bg-surface p-4">
+        <h3 className="mb-3 font-mono text-xs font-bold uppercase tracking-wider text-muted">
+          Output
+        </h3>
+        <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-text-secondary">
+          {output}
+        </pre>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {SCRUM_FIELDS.map(({ key, label, color }) => (
+        <div key={key} className="rounded-lg border border-border bg-surface p-4">
+          <h3 className={`mb-2 font-mono text-xs font-bold uppercase tracking-wider ${color}`}>
+            {label}
+          </h3>
+          <p className="text-sm leading-relaxed text-text-secondary">{scrum[key]}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function AgentOutputDrawer({
   agent,
   onClose,
@@ -108,14 +164,7 @@ export function AgentOutputDrawer({
         {/* Output */}
         <div className="p-4">
           {agent.last_output ? (
-            <div className="rounded-lg border border-border bg-surface p-4">
-              <h3 className="mb-3 font-mono text-xs font-bold uppercase tracking-wider text-muted">
-                Output
-              </h3>
-              <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-text-secondary">
-                {agent.last_output}
-              </pre>
-            </div>
+            <ScrumOutput output={agent.last_output} />
           ) : (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <span className="text-4xl opacity-30">{agent.emoji}</span>

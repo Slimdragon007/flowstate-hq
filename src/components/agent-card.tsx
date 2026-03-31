@@ -107,8 +107,14 @@ export function AgentCard({
 
         {agent.last_output && (
           <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-text-secondary">
-            {agent.last_output.substring(0, 120)}
-            {agent.last_output.length > 120 ? "..." : ""}
+            {(() => {
+              try {
+                const parsed = JSON.parse(agent.last_output);
+                if (parsed.summary) return parsed.summary;
+              } catch { /* not JSON */ }
+              const text = agent.last_output;
+              return text.length > 120 ? text.substring(0, 120) + "..." : text;
+            })()}
           </p>
         )}
 
