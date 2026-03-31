@@ -533,7 +533,7 @@ export function PixiCanvas({ agents, meetingActive = false, onSelectAgent }: Pix
     <div
       ref={containerRef}
       className="relative w-full overflow-hidden rounded-xl border border-border"
-      style={{ height: 500, minWidth: 500 }}
+      style={{ height: "clamp(280px, 50vw, 500px)" }}
     >
       {!ready && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a18]">

@@ -75,27 +75,25 @@ export function OfficeView({ agents }: { agents: AgentData[] }) {
         </button>
       </div>
 
-      {/* PixiJS Game Canvas */}
-      <div className="flex gap-4">
-        <div className="flex-1 overflow-x-auto">
-          <div className="mx-auto" style={{ maxWidth: 800 }}>
-            <PixiCanvas agents={displayAgents} meetingActive={meetingActive} onSelectAgent={setSelectedAgent} />
-          </div>
+      {/* PixiJS Game Canvas + Standup Feed */}
+      <div className="flex flex-col gap-4 lg:flex-row">
+        <div className="flex-1 min-w-0">
+          <PixiCanvas agents={displayAgents} meetingActive={meetingActive} onSelectAgent={setSelectedAgent} />
         </div>
 
-        {/* Live standup feed */}
+        {/* Live standup feed: below on mobile, side panel on desktop */}
         <StandupFeed agents={displayAgents} active={simulating} />
       </div>
 
       {/* Bottom agent bar */}
-      <div className="mt-4 flex items-center justify-center gap-1 overflow-x-auto rounded-lg border border-border bg-surface p-2">
+      <div className="mt-4 flex items-center gap-1 overflow-x-auto rounded-lg border border-border bg-surface p-2 scrollbar-none">
         {displayAgents.map((agent) => (
           <button key={agent.id} onClick={() => setSelectedAgent(agent)}
-            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs hover:bg-elevated transition-colors">
+            className="flex flex-shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs hover:bg-elevated active:bg-elevated transition-colors">
             <span className={`h-1.5 w-1.5 rounded-full ${agent.status === "working" ? "animate-pulse" : ""}`}
               style={{ backgroundColor: STATUS_COLOR[agent.status] }} />
             <span className="text-text-secondary">{agent.emoji}</span>
-            <span className="hidden font-mono text-[0.6rem] text-muted sm:inline">{agent.name}</span>
+            <span className="font-mono text-[0.6rem] text-muted">{agent.name}</span>
           </button>
         ))}
       </div>

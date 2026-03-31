@@ -128,11 +128,11 @@ export function StandupFeed({ agents, active }: { agents: AgentData[]; active: b
   if (!active && entries.length === 0) return null;
 
   return (
-    <div className="hidden w-64 flex-shrink-0 lg:block">
+    <div className="w-full lg:w-64 lg:flex-shrink-0">
       <div
         ref={scrollRef}
         className="overflow-y-auto rounded-lg border border-border bg-surface p-3"
-        style={{ maxHeight: 500 }}
+        style={{ maxHeight: 300 }}
       >
         <div className="mb-3 flex items-center gap-2">
           <h3 className="font-mono text-xs font-bold text-text-primary">Standup Feed</h3>
