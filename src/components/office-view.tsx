@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import type { AgentData } from "./agent-card";
 import { AgentOutputDrawer } from "./agent-output-drawer";
 import { PixiCanvas } from "./pixi-canvas";
+import { StandupFeed } from "./standup-feed";
 
 const STATUS_COLOR: Record<string, string> = {
   idle: "#888888",
@@ -16,7 +17,6 @@ export function OfficeView({ agents }: { agents: AgentData[] }) {
   const [selectedAgent, setSelectedAgent] = useState<AgentData | null>(null);
   const [simulating, setSimulating] = useState(false);
   const [simAgents, setSimAgents] = useState<AgentData[]>(agents);
-  const [simLog, setSimLog] = useState<string[]>([]);
   const [meetingActive, setMeetingActive] = useState(false);
 
   useEffect(() => {
@@ -30,7 +30,6 @@ export function OfficeView({ agents }: { agents: AgentData[] }) {
 
   const runSimulation = useCallback(async () => {
     setSimulating(true);
-    setSimLog(["Briefing starting... agents heading to meeting room."]);
     setMeetingActive(true);
 
     const agentsCopy = agents.map((a) => ({ ...a, status: "idle" as string }));
@@ -41,7 +40,6 @@ export function OfficeView({ agents }: { agents: AgentData[] }) {
     for (let i = 0; i < agentsCopy.length; i++) {
       const agent = agentsCopy[i];
       setSimAgents((prev) => prev.map((a) => (a.id === agent.id ? { ...a, status: "working" } : a)));
-      setSimLog((prev) => [...prev, `${agent.emoji} ${agent.name} is working...`]);
 
       try {
         const res = await fetch(`/api/agents/${agent.id}/run`, { method: "POST" });
@@ -53,14 +51,11 @@ export function OfficeView({ agents }: { agents: AgentData[] }) {
               : a
           )
         );
-        setSimLog((prev) => [...prev, data.success ? `${agent.emoji} ${agent.name} done.` : `${agent.emoji} ${agent.name} failed.`]);
       } catch {
         setSimAgents((prev) => prev.map((a) => (a.id === agent.id ? { ...a, status: "error" } : a)));
-        setSimLog((prev) => [...prev, `${agent.emoji} ${agent.name} errored.`]);
       }
     }
 
-    setSimLog((prev) => [...prev, "Briefing complete. Returning to desks."]);
     setMeetingActive(false);
     setSimulating(false);
   }, [agents]);
@@ -88,15 +83,8 @@ export function OfficeView({ agents }: { agents: AgentData[] }) {
           </div>
         </div>
 
-        {/* Sim log */}
-        {simLog.length > 0 && (
-          <div className="hidden w-52 flex-shrink-0 overflow-y-auto rounded-lg border border-border bg-surface p-3 lg:block" style={{ maxHeight: 450 }}>
-            <h3 className="mb-2 font-mono text-xs font-bold text-text-primary">Sim Log</h3>
-            {simLog.map((line, i) => (
-              <p key={i} className="text-[0.65rem] leading-relaxed text-text-secondary">{line}</p>
-            ))}
-          </div>
-        )}
+        {/* Live standup feed */}
+        <StandupFeed agents={displayAgents} active={simulating} />
       </div>
 
       {/* Bottom agent bar */}
