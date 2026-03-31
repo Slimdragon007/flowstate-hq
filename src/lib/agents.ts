@@ -123,6 +123,44 @@ export async function getTeams(orgId: string) {
   }));
 }
 
+export interface AgentRecord {
+  id: string;
+  name: string;
+  zone: string;
+  emoji: string;
+  prompt_template: string;
+  mcp_target: string | null;
+  status: string;
+}
+
+/** Get teams with full agent roster, grouped by lead/member */
+export async function getTeamRoster(orgId: string) {
+  const { data, error } = await getSupabase()
+    .from("teams")
+    .select("id, name, agent_team_members(role_in_team, agents(id, name, zone, emoji, prompt_template, mcp_target, status))")
+    .eq("org_id", orgId);
+  if (error) throw error;
+
+  return data?.map((team) => {
+    const entries = team.agent_team_members ?? [];
+    // Supabase types the nested join as an array; extract the agent object
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const getAgent = (entry: any): AgentRecord | null => {
+      const a = Array.isArray(entry.agents) ? entry.agents[0] : entry.agents;
+      return a ?? null;
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const leadEntry = entries.find((m: any) => m.role_in_team === "lead");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const memberEntries = entries.filter((m: any) => m.role_in_team === "member");
+    return {
+      name: team.name,
+      lead: leadEntry ? getAgent(leadEntry) : null,
+      members: memberEntries.map(getAgent).filter((a): a is AgentRecord => a !== null),
+    };
+  });
+}
+
 /** Get recent agent messages */
 export async function getAgentMessages(orgId: string, limit: number = 50) {
   const { data, error } = await getSupabase()

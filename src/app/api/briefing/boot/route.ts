@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 export const maxDuration = 300;
 import {
   getOrganization,
-  getAgents,
+  getTeamRoster,
   updateAgentStatus,
   saveAgentOutput,
   logActivity,
@@ -12,95 +12,131 @@ import {
 import { callAgent } from "@/lib/anthropic";
 import { requireAuth } from "@/lib/auth";
 
+interface TeamReport {
+  team: string;
+  lead: string | null;
+  memberResults: { name: string; output: string; success: boolean }[];
+  leadResult: { output: string; success: boolean } | null;
+}
+
+async function runAgent(
+  agent: { id: string; name: string; zone: string; prompt_template: string; mcp_target: string | null },
+  orgId: string,
+  context?: string
+): Promise<{ success: boolean; output: string; error?: string }> {
+  await Promise.all([
+    updateAgentStatus(agent.id, orgId, "working"),
+    logActivity(orgId, agent.id, `${agent.name} started`, "Briefing run", agent.zone),
+  ]);
+
+  const result = await callAgent(agent, context);
+
+  if (result.success) {
+    await Promise.all([
+      saveAgentOutput(agent.id, orgId, result.output),
+      updateAgentStatus(agent.id, orgId, "done"),
+      logActivity(orgId, agent.id, `${agent.name} completed`, result.output.substring(0, 500), agent.zone),
+      sendAgentMessage(orgId, agent.id, null, "status_update", `${agent.name} completed.`),
+    ]);
+  } else {
+    await Promise.all([
+      updateAgentStatus(agent.id, orgId, "error"),
+      logActivity(orgId, agent.id, `${agent.name} failed`, result.error ?? "Unknown error", agent.zone),
+      sendAgentMessage(orgId, agent.id, null, "alert", `${agent.name} failed: ${result.error ?? "Unknown error"}`),
+    ]);
+  }
+
+  return result;
+}
+
 export async function POST(request: NextRequest) {
   const authError = requireAuth(request);
   if (authError) return authError;
 
   try {
-    // 1. Get FlowstateAI org
     const org = await getOrganization("flowstate");
-
-    // 2. Get all agents
-    const agents = await getAgents(org.id);
-
-    // 3. Find Chief of Staff (executive zone, display_order 0)
-    const chief = agents.find(
-      (a) => a.name === "Chief of Staff" || (a.zone === "executive" && a.display_order === 0)
-    );
-    if (!chief) {
-      return NextResponse.json(
-        { success: false, error: "Chief of Staff not found" },
-        { status: 404 }
-      );
+    const teams = await getTeamRoster(org.id);
+    if (!teams) {
+      return NextResponse.json({ success: false, error: "No teams found" }, { status: 404 });
     }
 
-    // 4. Run Chief of Staff first (no context)
-    await Promise.all([
-      updateAgentStatus(chief.id, org.id, "working"),
-      logActivity(org.id, chief.id, "Chief of Staff booting", "Morning briefing sequence initiated", "executive"),
-    ]);
+    // 1. Find and run Chief of Staff (executive team lead)
+    const execTeam = teams.find((t) => t.name === "Executive");
+    const chief = execTeam?.lead;
+    if (!chief) {
+      return NextResponse.json({ success: false, error: "Chief of Staff not found" }, { status: 404 });
+    }
 
-    const chiefResult = await callAgent(chief);
-
+    const chiefResult = await runAgent(chief, org.id);
     if (!chiefResult.success) {
-      await Promise.all([
-        updateAgentStatus(chief.id, org.id, "error"),
-        logActivity(org.id, chief.id, "Chief of Staff failed", chiefResult.error ?? "Unknown error", "executive"),
-        sendAgentMessage(org.id, chief.id, null, "alert", `Chief of Staff failed: ${chiefResult.error ?? "Unknown error"}`),
-      ]);
       return NextResponse.json({ success: false, error: `Chief of Staff failed: ${chiefResult.error}` });
     }
 
-    await Promise.all([
-      saveAgentOutput(chief.id, org.id, chiefResult.output),
-      updateAgentStatus(chief.id, org.id, "done"),
-      logActivity(org.id, chief.id, "Chief of Staff completed", chiefResult.output.substring(0, 500), "executive"),
-      sendAgentMessage(org.id, chief.id, null, "general", `Morning briefing context loaded. ${chiefResult.output.substring(0, 200)}...`),
-    ]);
+    await sendAgentMessage(org.id, chief.id, null, "general", `Morning briefing context loaded.`);
 
-    // 5. Run remaining agents in parallel batches of 4
-    const remainingAgents = agents.filter((a) => a.id !== chief.id && a.is_active);
-    const results: Record<string, string> = { [chief.id]: chiefResult.output };
+    // 2. Run each non-executive team: members first (parallel), then lead with aggregated context
+    const nonExecTeams = teams.filter((t) => t.name !== "Executive");
+    const teamReports: TeamReport[] = [];
 
-    for (let i = 0; i < remainingAgents.length; i += 4) {
-      const batch = remainingAgents.slice(i, i + 4);
+    // Run all teams in parallel
+    const teamResults = await Promise.allSettled(
+      nonExecTeams.map(async (team) => {
+        const report: TeamReport = {
+          team: team.name,
+          lead: team.lead?.name ?? null,
+          memberResults: [],
+          leadResult: null,
+        };
 
-      const batchResults = await Promise.allSettled(
-        batch.map(async (agent) => {
-          await Promise.all([
-            updateAgentStatus(agent.id, org.id, "working"),
-            logActivity(org.id, agent.id, `${agent.name} started`, "Briefing run with Chief of Staff context", agent.zone),
-          ]);
+        // Run members in parallel with Chief's context
+        if (team.members.length > 0) {
+          const memberResults = await Promise.allSettled(
+            team.members.map((member) => runAgent(member, org.id, chiefResult.output))
+          );
 
-          const result = await callAgent(agent, chiefResult.output);
-
-          if (result.success) {
-            await Promise.all([
-              saveAgentOutput(agent.id, org.id, result.output),
-              updateAgentStatus(agent.id, org.id, "done"),
-              logActivity(org.id, agent.id, `${agent.name} completed`, result.output.substring(0, 500), agent.zone),
-              sendAgentMessage(org.id, agent.id, null, "status_update", `${agent.name} completed. ${result.output.substring(0, 200)}...`),
-            ]);
-            return { agentId: agent.id, output: result.output };
-          } else {
-            await Promise.all([
-              updateAgentStatus(agent.id, org.id, "error"),
-              logActivity(org.id, agent.id, `${agent.name} failed`, result.error ?? "Unknown error", agent.zone),
-              sendAgentMessage(org.id, agent.id, null, "alert", `${agent.name} failed: ${result.error ?? "Unknown error"}`),
-            ]);
-            return { agentId: agent.id, output: "", error: result.error };
-          }
-        })
-      );
-
-      for (const settled of batchResults) {
-        if (settled.status === "fulfilled") {
-          results[settled.value.agentId] = settled.value.output;
+          report.memberResults = team.members.map((member, i) => {
+            const settled = memberResults[i];
+            if (settled.status === "fulfilled") {
+              return { name: member.name, output: settled.value.output, success: settled.value.success };
+            }
+            return { name: member.name, output: "", success: false };
+          });
         }
+
+        // Run team lead with Chief's context + member outputs as additional context
+        if (team.lead) {
+          const memberContext = report.memberResults
+            .filter((m) => m.success)
+            .map((m) => `[${m.name}]: ${m.output}`)
+            .join("\n\n");
+
+          const leadContext = `${chiefResult.output}\n\nTeam member reports:\n${memberContext}`;
+          report.leadResult = await runAgent(team.lead, org.id, leadContext);
+        }
+
+        return report;
+      })
+    );
+
+    for (const settled of teamResults) {
+      if (settled.status === "fulfilled") {
+        teamReports.push(settled.value);
       }
     }
 
-    return NextResponse.json({ success: true, results });
+    // 3. Build structured briefing response
+    const briefing = {
+      chief: chiefResult.output,
+      teams: teamReports.map((r) => ({
+        team: r.team,
+        lead: r.lead,
+        leadOutput: r.leadResult?.output ?? null,
+        leadSuccess: r.leadResult?.success ?? false,
+        members: r.memberResults,
+      })),
+    };
+
+    return NextResponse.json({ success: true, briefing });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ success: false, error: message }, { status: 500 });
