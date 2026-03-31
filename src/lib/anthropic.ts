@@ -150,7 +150,8 @@ export async function callAgent(
           const result = executeTool(tool.name, tool.input);
           toolCalls.push({ name: tool.name, input: tool.input });
 
-          // If report_status was called, capture it as structured output
+          // report_status is the authoritative final output, replacing any
+          // preceding text. The structured JSON is what the UI parses.
           if (tool.name === "report_status") {
             finalOutput = result;
           }

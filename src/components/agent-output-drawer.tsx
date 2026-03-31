@@ -37,7 +37,12 @@ interface ScrumStatus {
 function parseScrumOutput(output: string): ScrumStatus | null {
   try {
     const parsed = JSON.parse(output);
-    if (parsed.done && parsed.doing && parsed.blocked && parsed.summary) {
+    if (
+      typeof parsed.done === "string" &&
+      typeof parsed.doing === "string" &&
+      typeof parsed.blocked === "string" &&
+      typeof parsed.summary === "string"
+    ) {
       return parsed as ScrumStatus;
     }
   } catch {

@@ -110,7 +110,7 @@ export function AgentCard({
             {(() => {
               try {
                 const parsed = JSON.parse(agent.last_output);
-                if (parsed.summary) return parsed.summary;
+                if (typeof parsed.summary === "string") return parsed.summary;
               } catch { /* not JSON */ }
               const text = agent.last_output;
               return text.length > 120 ? text.substring(0, 120) + "..." : text;
