@@ -17,6 +17,7 @@ export function OfficeView({ agents }: { agents: AgentData[] }) {
   const [simulating, setSimulating] = useState(false);
   const [simAgents, setSimAgents] = useState<AgentData[]>(agents);
   const [simLog, setSimLog] = useState<string[]>([]);
+  const [meetingActive, setMeetingActive] = useState(false);
 
   useEffect(() => {
     if (!simulating) setSimAgents(agents);
@@ -30,6 +31,7 @@ export function OfficeView({ agents }: { agents: AgentData[] }) {
   const runSimulation = useCallback(async () => {
     setSimulating(true);
     setSimLog(["Briefing starting... agents heading to meeting room."]);
+    setMeetingActive(true);
 
     const agentsCopy = agents.map((a) => ({ ...a, status: "idle" as string }));
     setSimAgents(agentsCopy);
@@ -59,6 +61,7 @@ export function OfficeView({ agents }: { agents: AgentData[] }) {
     }
 
     setSimLog((prev) => [...prev, "Briefing complete. Returning to desks."]);
+    setMeetingActive(false);
     setSimulating(false);
   }, [agents]);
 
@@ -81,7 +84,7 @@ export function OfficeView({ agents }: { agents: AgentData[] }) {
       <div className="flex gap-4">
         <div className="flex-1 overflow-x-auto">
           <div className="mx-auto" style={{ maxWidth: 800 }}>
-            <PixiCanvas agents={displayAgents} onSelectAgent={setSelectedAgent} />
+            <PixiCanvas agents={displayAgents} meetingActive={meetingActive} onSelectAgent={setSelectedAgent} />
           </div>
         </div>
 

@@ -37,7 +37,6 @@ const SCREEN_BG: Record<string, number> = {
 };
 
 // Desk slot positions per zone (relative to diamond center, normalized 0-1)
-// Layout mirrors the old SVG: 2x3 grid
 const DESK_SLOTS: Record<string, { rx: number; ry: number }[]> = {
   executive:   [{ rx: -0.28, ry: -0.35 }],
   operations:  [{ rx: -0.05, ry: -0.42 }, { rx: 0.08, ry: -0.42 }, { rx: 0.02, ry: -0.28 }],
@@ -49,11 +48,17 @@ const DESK_SLOTS: Record<string, { rx: number; ry: number }[]> = {
 
 const ZONE_ORDER = ["executive", "operations", "finance", "marketing", "engineering", "security"];
 
-// Convert grid coords (0-1 range) to isometric diamond coords
+// Lerp speed (0-1 per frame at 60fps)
+const LERP_SPEED = 0.04;
+
 function toIso(gx: number, gy: number, w: number, h: number): [number, number] {
   const ix = (gx - gy) * (w / 2);
   const iy = (gx + gy) * (h / 2);
   return [ix, iy];
+}
+
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
 }
 
 function buildFloor(
@@ -67,13 +72,11 @@ function buildFloor(
   const cx = stageWidth / 2;
   const cy = stageHeight * 0.45;
 
-  // Floor surface
   const floorShape = new PIXI.Graphics();
   floorShape.poly([cx, cy - dh / 2, cx + dw / 2, cy, cx, cy + dh / 2, cx - dw / 2, cy]);
   floorShape.fill({ color: 0xddd2c2 });
   floor.addChild(floorShape);
 
-  // Checkerboard tiles
   const tileCount = 12;
   for (let row = 0; row < tileCount; row++) {
     for (let col = 0; col < tileCount; col++) {
@@ -91,7 +94,6 @@ function buildFloor(
     }
   }
 
-  // Walls
   const wallLeft = new PIXI.Graphics();
   wallLeft.poly([cx - dw / 2, cy, cx, cy + dh / 2, cx, cy + dh / 2 + 15, cx - dw / 2, cy + 15]);
   wallLeft.fill({ color: 0xb0a090 });
@@ -102,7 +104,6 @@ function buildFloor(
   wallRight.fill({ color: 0xa09080 });
   floor.addChild(wallRight);
 
-  // Zone dividers
   const dividers = new PIXI.Graphics();
   dividers.setStrokeStyle({ width: 1, color: 0xb8a890, alpha: 0.3 });
   dividers.moveTo(cx, cy - dh / 2);
@@ -113,7 +114,6 @@ function buildFloor(
   dividers.stroke();
   floor.addChild(dividers);
 
-  // Zone labels
   const zonePositions = [
     { zone: ZONES[0], gx: 0.17, gy: 0.25 },
     { zone: ZONES[1], gx: 0.50, gy: 0.18 },
@@ -135,14 +135,12 @@ function buildFloor(
     floor.addChild(label);
   }
 
-  // Meeting table
   const table = new PIXI.Graphics();
   table.ellipse(cx, cy, 22, 12);
   table.fill({ color: 0xc4a882 });
   table.stroke({ width: 1, color: 0xd4b892 });
   floor.addChild(table);
 
-  // Plants
   const plantPositions = [
     [cx - dw * 0.38, cy - dh * 0.15], [cx + dw * 0.38, cy - dh * 0.15],
     [cx - dw * 0.38, cy + dh * 0.15], [cx + dw * 0.38, cy + dh * 0.15],
@@ -159,7 +157,6 @@ function buildFloor(
     floor.addChild(plant);
   }
 
-  // Title
   const title = new PIXI.Text({
     text: "FLOWSTATE HEADQUARTERS",
     style: { fontFamily: "monospace", fontSize: 8, fill: 0xffffff, letterSpacing: 4 },
@@ -180,15 +177,12 @@ function drawDesk(
   screenColor: number,
 ) {
   const desk = new PIXI.Graphics();
-  // Desk surface
   desk.rect(x - 14, y - 2, 28, 10);
   desk.fill({ color: 0xc4a882 });
   desk.stroke({ width: 0.5, color: 0xd4b892 });
-  // Monitor
   desk.rect(x - 6, y - 12, 12, 9);
   desk.fill({ color: 0x1a1a22 });
   desk.stroke({ width: 0.5, color: 0x333333 });
-  // Screen
   desk.rect(x - 4, y - 10, 8, 5);
   desk.fill({ color: screenColor });
   return desk;
@@ -218,27 +212,22 @@ function drawPixelAgent(
 
   const g = new PIXI.Graphics();
 
-  // Shadow
   g.ellipse(0, 4 * p, 3 * p, p);
   g.fill({ color: 0x000000, alpha: 0.12 });
 
-  // Hair
   g.rect(-1 * p, -8 * p, 3 * p, p);
   g.fill({ color: hair });
   g.rect(-2 * p, -7 * p, 4 * p, p);
   g.fill({ color: hair });
 
-  // Face
   g.rect(-1 * p, -7 * p, p, p);
   g.fill({ color: skin });
   g.rect(0, -7 * p, p, p);
   g.fill({ color: skin });
-  // Eyes
   g.rect(-1 * p, -6 * p, p, p);
   g.fill({ color: 0x333333 });
   g.rect(1 * p, -6 * p, p, p);
   g.fill({ color: 0x333333 });
-  // Mouth area
   g.rect(-1 * p, -5 * p, p, p);
   g.fill({ color: skin });
   g.rect(0, -5 * p, p, p);
@@ -246,11 +235,9 @@ function drawPixelAgent(
   g.rect(1 * p, -5 * p, p, p);
   g.fill({ color: skin });
 
-  // Neck
   g.rect(0, -4 * p, p, p);
   g.fill({ color: skin });
 
-  // Shirt
   g.rect(-2 * p, -3 * p, 5 * p, p);
   g.fill({ color: agentColor });
   g.rect(-3 * p, -2 * p, 7 * p, p);
@@ -258,17 +245,14 @@ function drawPixelAgent(
   g.rect(-2 * p, -1 * p, 5 * p, p);
   g.fill({ color: agentColor });
 
-  // Arms (hands)
   g.rect(-3 * p, -2 * p, p, p);
   g.fill({ color: skin });
   g.rect(3 * p, -2 * p, p, p);
   g.fill({ color: skin });
 
-  // Belt
   g.rect(-2 * p, 0, 5 * p, p);
   g.fill({ color: 0x444444 });
 
-  // Pants
   g.rect(-2 * p, p, 5 * p, p);
   g.fill({ color: pants });
   g.rect(-2 * p, 2 * p, 2 * p, p);
@@ -276,7 +260,6 @@ function drawPixelAgent(
   g.rect(1 * p, 2 * p, 2 * p, p);
   g.fill({ color: pants });
 
-  // Shoes
   g.rect(-2 * p, 3 * p, 2 * p, p);
   g.fill({ color: 0x222222 });
   g.rect(1 * p, 3 * p, 2 * p, p);
@@ -284,13 +267,11 @@ function drawPixelAgent(
 
   container.addChild(g);
 
-  // Status dot
   const dot = new PIXI.Graphics();
   dot.circle(4 * p, -8 * p, p);
   dot.fill({ color: statusColor });
   container.addChild(dot);
 
-  // Pulsing animation for working status
   if (isWorking) {
     let elapsed = 0;
     const ticker = new PIXI.Ticker();
@@ -302,7 +283,6 @@ function drawPixelAgent(
     container.on("destroyed", () => ticker.destroy());
   }
 
-  // Name label
   const nameLabel = new PIXI.Text({
     text: agent.name,
     style: { fontFamily: "monospace", fontSize: 6, fill: 0x665544, fontWeight: "bold" },
@@ -311,7 +291,6 @@ function drawPixelAgent(
   nameLabel.y = 6 * p;
   container.addChild(nameLabel);
 
-  // Chat bubble when working
   if (isWorking) {
     const bubble = new PIXI.Graphics();
     bubble.roundRect(5 * p, -10 * p, 32, 10, 3);
@@ -332,21 +311,55 @@ function drawPixelAgent(
   return container;
 }
 
+// Track sprite + positions for animation
+interface AgentSprite {
+  sprite: import("pixi.js").Container;
+  desk: import("pixi.js").Graphics;
+  deskX: number;
+  deskY: number;
+  meetingX: number;
+  meetingY: number;
+  targetX: number;
+  targetY: number;
+}
+
 interface PixiCanvasProps {
   agents: AgentData[];
+  meetingActive?: boolean;
   onSelectAgent?: (agent: AgentData) => void;
 }
 
-export function PixiCanvas({ agents, onSelectAgent }: PixiCanvasProps) {
+export function PixiCanvas({ agents, meetingActive = false, onSelectAgent }: PixiCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<import("pixi.js").Application | null>(null);
+  const spritesRef = useRef<AgentSprite[]>([]);
+  const meetingRef = useRef(meetingActive);
   const [ready, setReady] = useState(false);
   const agentsRef = useRef(agents);
   agentsRef.current = agents;
 
+  // Keep meetingRef in sync
+  meetingRef.current = meetingActive;
+
   const handleAgentClick = useCallback((agent: AgentData) => {
     onSelectAgent?.(agent);
   }, [onSelectAgent]);
+
+  // Update targets when meetingActive changes
+  useEffect(() => {
+    const sprites = spritesRef.current;
+    for (const s of sprites) {
+      if (meetingActive) {
+        s.targetX = s.meetingX;
+        s.targetY = s.meetingY;
+        s.desk.alpha = 0.3;
+      } else {
+        s.targetX = s.deskX;
+        s.targetY = s.deskY;
+        s.desk.alpha = 1;
+      }
+    }
+  }, [meetingActive]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -378,13 +391,15 @@ export function PixiCanvas({ agents, onSelectAgent }: PixiCanvasProps) {
       const sw = app.screen.width;
       const sh = app.screen.height;
 
-      // Build floor
       const { floor, cx, cy, dw, dh } = buildFloor(PIXI, sw, sh);
       app.stage.addChild(floor);
 
-      // Place agents at desks
+      // Place agents at desks and track sprites
       const currentAgents = agentsRef.current;
       const agentLayer = new PIXI.Container();
+      const sprites: AgentSprite[] = [];
+      let agentIndex = 0;
+      const totalAgents = currentAgents.length;
 
       for (const zone of ZONE_ORDER) {
         const zoneAgents = currentAgents.filter((a) => a.zone === zone);
@@ -397,17 +412,57 @@ export function PixiCanvas({ agents, onSelectAgent }: PixiCanvasProps) {
           const ax = cx + slot.rx * dw;
           const ay = cy + slot.ry * dh;
 
-          // Draw desk
           const desk = drawDesk(PIXI, ax, ay, SCREEN_BG[agent.status] ?? 0x1a2a3a);
           agentLayer.addChild(desk);
 
-          // Draw agent (positioned above desk)
           const sprite = drawPixelAgent(PIXI, agent, ax, ay - 8, () => handleAgentClick(agent));
           agentLayer.addChild(sprite);
+
+          // Calculate meeting position (spread around table)
+          const angle = (agentIndex / totalAgents) * 2 * Math.PI;
+          const meetingX = cx + Math.cos(angle) * 35;
+          const meetingY = cy + Math.sin(angle) * 20 - 8;
+
+          const isMeeting = meetingRef.current;
+          sprites.push({
+            sprite,
+            desk,
+            deskX: ax,
+            deskY: ay - 8,
+            meetingX,
+            meetingY,
+            targetX: isMeeting ? meetingX : ax,
+            targetY: isMeeting ? meetingY : ay - 8,
+          });
+
+          if (isMeeting) {
+            desk.alpha = 0.3;
+          }
+
+          agentIndex++;
         });
       }
 
+      spritesRef.current = sprites;
       app.stage.addChild(agentLayer);
+
+      // Animation ticker: lerp sprites toward their targets
+      app.ticker.add(() => {
+        for (const s of sprites) {
+          const dx = s.targetX - s.sprite.x;
+          const dy = s.targetY - s.sprite.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist > 0.5) {
+            s.sprite.x = lerp(s.sprite.x, s.targetX, LERP_SPEED);
+            s.sprite.y = lerp(s.sprite.y, s.targetY, LERP_SPEED);
+          } else {
+            s.sprite.x = s.targetX;
+            s.sprite.y = s.targetY;
+          }
+        }
+      });
+
       setReady(true);
     }
 
@@ -415,6 +470,7 @@ export function PixiCanvas({ agents, onSelectAgent }: PixiCanvasProps) {
 
     return () => {
       destroyed = true;
+      spritesRef.current = [];
       if (appRef.current) {
         appRef.current.destroy(true, { children: true });
         appRef.current = null;
