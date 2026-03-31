@@ -188,6 +188,23 @@ function drawDesk(
   return desk;
 }
 
+function getBubbleText(agent: AgentData): string | null {
+  if (agent.status === "working") return "working...";
+  if (agent.status === "error") return "error!";
+  if (agent.status === "done" && agent.last_output) {
+    try {
+      const parsed = JSON.parse(agent.last_output);
+      if (typeof parsed.summary === "string") {
+        return parsed.summary.slice(0, 24) + (parsed.summary.length > 24 ? "..." : "");
+      }
+    } catch {
+      // Not JSON
+    }
+    return agent.last_output.slice(0, 24) + (agent.last_output.length > 24 ? "..." : "");
+  }
+  return null;
+}
+
 function drawPixelAgent(
   PIXI: typeof import("pixi.js"),
   agent: AgentData,
@@ -291,21 +308,54 @@ function drawPixelAgent(
   nameLabel.y = 6 * p;
   container.addChild(nameLabel);
 
-  if (isWorking) {
-    const bubble = new PIXI.Graphics();
-    bubble.roundRect(5 * p, -10 * p, 32, 10, 3);
-    bubble.fill({ color: 0xffffff });
-    bubble.stroke({ width: 0.5, color: 0xdddddd });
-    container.addChild(bubble);
+  // Chat bubble: "working..." for active, summary for done
+  const bubbleText = getBubbleText(agent);
+  if (bubbleText) {
+    const bubbleWidth = Math.min(Math.max(bubbleText.length * 3.2, 28), 80);
+    const bubbleGroup = new PIXI.Container();
+    bubbleGroup.x = 5 * p;
+    bubbleGroup.y = -12 * p;
 
-    const bubbleText = new PIXI.Text({
-      text: "working...",
-      style: { fontFamily: "monospace", fontSize: 4, fill: 0xb08800 },
+    const bg = new PIXI.Graphics();
+    bg.roundRect(0, 0, bubbleWidth, 12, 3);
+    bg.fill({ color: isWorking ? 0xffffff : (agent.status === "done" ? 0x0a2815 : 0x2a1010) });
+    bg.stroke({ width: 0.5, color: isWorking ? 0xdddddd : (agent.status === "done" ? 0x00cc66 : 0xff4444) });
+    bubbleGroup.addChild(bg);
+
+    // Speech bubble tail
+    const tail = new PIXI.Graphics();
+    tail.poly([-2, 6, 2, 12, 4, 6]);
+    tail.fill({ color: isWorking ? 0xffffff : (agent.status === "done" ? 0x0a2815 : 0x2a1010) });
+    bubbleGroup.addChild(tail);
+
+    const text = new PIXI.Text({
+      text: bubbleText,
+      style: {
+        fontFamily: "monospace",
+        fontSize: 4,
+        fill: isWorking ? 0xb08800 : (agent.status === "done" ? 0x00ff88 : 0xff4444),
+      },
     });
-    bubbleText.anchor.set(0.5);
-    bubbleText.x = 5 * p + 16;
-    bubbleText.y = -10 * p + 5;
-    container.addChild(bubbleText);
+    text.anchor.set(0.5);
+    text.x = bubbleWidth / 2;
+    text.y = 6;
+    bubbleGroup.addChild(text);
+
+    // Fade-in animation for done/error bubbles
+    if (!isWorking) {
+      bubbleGroup.alpha = 0;
+      let fadeIn = 0;
+      const fadeTicker = new PIXI.Ticker();
+      fadeTicker.add((delta) => {
+        fadeIn += delta.deltaTime * 0.03;
+        bubbleGroup.alpha = Math.min(fadeIn, 1);
+        if (fadeIn >= 1) fadeTicker.stop();
+      });
+      fadeTicker.start();
+      container.on("destroyed", () => fadeTicker.destroy());
+    }
+
+    container.addChild(bubbleGroup);
   }
 
   return container;
