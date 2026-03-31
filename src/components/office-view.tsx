@@ -81,7 +81,7 @@ export function OfficeView({ agents }: { agents: AgentData[] }) {
       <div className="flex gap-4">
         <div className="flex-1 overflow-x-auto">
           <div className="mx-auto" style={{ maxWidth: 800 }}>
-            <PixiCanvas agents={displayAgents} />
+            <PixiCanvas agents={displayAgents} onSelectAgent={setSelectedAgent} />
           </div>
         </div>
 
