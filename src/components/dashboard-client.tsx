@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { TabNav, type TabId } from "./tab-nav";
-import { OfficeView } from "./office-view";
+import { OfficeCanvas } from "./office-canvas";
 import { TeamSection } from "./team-section";
 import { ActivityFeed } from "./activity-feed";
 import { BootButton } from "./boot-button";
@@ -59,7 +59,7 @@ export function DashboardClient({
       </div>
 
       {/* Tab Content */}
-      {activeTab === "office" && <OfficeView agents={agents} />}
+      {activeTab === "office" && <OfficeCanvas agents={agents} />}
 
       {activeTab === "dashboard" && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
